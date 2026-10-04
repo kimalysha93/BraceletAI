@@ -1,0 +1,145 @@
+import type { ThreadColor } from "./types";
+import { getThread, THREAD_BY_ID } from "./palette";
+
+export type Grid = string[][];
+
+export function createGrid(width: number, height: number, fill: string): Grid {
+  return Array.from({ length: height }, () => Array.from({ length: width }, () => fill));
+}
+
+/** Counts per colour, most-used first. */
+export function countColors(grid: Grid): { id: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const row of grid) for (const id of row) counts.set(id, (counts.get(id) ?? 0) + 1);
+  return [...counts.entries()].map(([id, count]) => ({ id, count })).sort((a, b) => b.count - a.count);
+}
+
+export function usedColorIds(grid: Grid): string[] {
+  return countColors(grid).map((c) => c.id);
+}
+
+export function paletteFor(grid: Grid): ThreadColor[] {
+  return usedColorIds(grid).map(getThread);
+}
+
+export function mostCommonColor(grid: Grid, fallback = "white"): string {
+  return countColors(grid)[0]?.id ?? fallback;
+}
+
+/** Returns a new grid with the given cells set; untouched rows keep their identity (cheap re-renders). */
+export function setCells(grid: Grid, cells: [number, number][], color: string): Grid {
+  let next: Grid | null = null;
+  const copied = new Set<number>();
+  for (const [r, c] of cells) {
+    if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length) continue;
+    if ((next ?? grid)[r][c] === color) continue;
+    if (!next) next = grid.slice();
+    if (!copied.has(r)) {
+      next[r] = next[r].slice();
+      copied.add(r);
+    }
+    next[r][c] = color;
+  }
+  return next ?? grid;
+}
+
+export function floodFill(grid: Grid, r: number, c: number, color: string): Grid {
+  const h = grid.length;
+  const w = grid[0]?.length ?? 0;
+  if (r < 0 || r >= h || c < 0 || c >= w) return grid;
+  const target = grid[r][c];
+  if (target === color) return grid;
+  const cells: [number, number][] = [];
+  const seen = new Uint8Array(w * h);
+  const stack: [number, number][] = [[r, c]];
+  while (stack.length) {
+    const [y, x] = stack.pop()!;
+    if (y < 0 || y >= h || x < 0 || x >= w) continue;
+    const i = y * w + x;
+    if (seen[i] || grid[y][x] !== target) continue;
+    seen[i] = 1;
+    cells.push([y, x]);
+    stack.push([y + 1, x], [y - 1, x], [y, x + 1], [y, x - 1]);
+  }
+  return setCells(grid, cells, color);
+}
+
+export function replaceColor(grid: Grid, from: string, to: string): Grid {
+  if (from === to) return grid;
+  return grid.map((row) => (row.includes(from) ? row.map((id) => (id === from ? to : id)) : row));
+}
+
+/** Resize, keeping existing cells. Width changes stay centred so designs don't drift to one side. */
+export function resizeGrid(grid: Grid, width: number, height: number, bg: string): Grid {
+  const oldW = grid[0]?.length ?? 0;
+  const offset = Math.floor((width - oldW) / 2);
+  return Array.from({ length: height }, (_, r) =>
+    Array.from({ length: width }, (_, c) => {
+      const src = grid[r]?.[c - offset];
+      return src ?? bg;
+    }),
+  );
+}
+
+export function isValidGrid(grid: unknown, width: number, height: number): grid is Grid {
+  return (
+    Array.isArray(grid) &&
+    grid.length === height &&
+    grid.every(
+      (row) => Array.isArray(row) && row.length === width && row.every((id) => typeof id === "string" && !!THREAD_BY_ID[id]),
+    )
+  );
+}
+
+// ---------- rotated stamping ----------
+//
+// Patterns run top-to-bottom, but people wear them sideways. Letters and motifs are
+// stamped rotated 90° clockwise so they read upright in the horizontal bracelet preview
+// (the same convention used by alpha pattern sites).
+//
+// A bitmap is an array of strings: '#' = main colour, '+' = detail colour, anything else = skip.
+
+export type Bitmap = string[];
+
+export function bitmapSize(bitmap: Bitmap) {
+  return { w: Math.max(...bitmap.map((r) => r.length)), h: bitmap.length };
+}
+
+/** Rows and columns a bitmap occupies once rotated onto the pattern. */
+export function rotatedFootprint(bitmap: Bitmap) {
+  const { w, h } = bitmapSize(bitmap);
+  return { rows: w, cols: h };
+}
+
+export function stampRotated(
+  grid: Grid,
+  bitmap: Bitmap,
+  startRow: number,
+  main: string,
+  detail: string = main,
+): Grid {
+  const width = grid[0]?.length ?? 0;
+  const { rows, cols } = rotatedFootprint(bitmap);
+  const startCol = Math.floor((width - cols) / 2);
+  const mainCells: [number, number][] = [];
+  const detailCells: [number, number][] = [];
+  for (let gy = 0; gy < bitmap.length; gy++) {
+    for (let gx = 0; gx < rows; gx++) {
+      const ch = bitmap[gy][gx];
+      if (ch !== "#" && ch !== "+") continue;
+      const r = startRow + gx;
+      const c = startCol + (cols - 1 - gy);
+      (ch === "#" ? mainCells : detailCells).push([r, c]);
+    }
+  }
+  return setCells(setCells(grid, mainCells, main), detailCells, detail);
+}
+
+/** Map a vertical-layout cell to its position in the horizontal (worn) preview. */
+export function toHorizontal(r: number, c: number, width: number) {
+  return { x: r, y: width - 1 - c };
+}
+
+export function fromHorizontal(x: number, y: number, width: number) {
+  return { r: x, c: width - 1 - y };
+}
