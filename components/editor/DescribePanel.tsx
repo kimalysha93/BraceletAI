@@ -174,7 +174,7 @@ export default function DescribePanel({
                 The AI only writes this little recipe. Our pattern engine turns it into real, knottable rows, so every pattern follows the rules.
               </p>
               <pre className="max-h-64 overflow-auto rounded-xl bg-ink p-3 font-mono text-[11.5px] leading-relaxed text-pink-100">
-                {JSON.stringify(result.raw, null, 2)}
+                {JSON.stringify(result.recipe, null, 2)}
               </pre>
             </div>
           )}

@@ -25,8 +25,9 @@ Be creative and match the mood. Themes like "sunset", "ocean", "rainbow", "Hallo
 should change the background style, colours AND motifs, not just one colour.
 
 Fields:
-- text: the word or name to write, max 20 characters. Use "" if the user did not ask for words. Never invent words.
-- motifs: up to 4 little pictures from: ${MOTIF_IDS.join(", ")}. Pick ones that fit the theme (e.g. ghost/pumpkin/bat for Halloween, snowflake for winter, clover for luck, cat/paw for pets). Use [] if none fit.
+- text: ONLY a word or name the user explicitly asked to write (e.g. "says HELLO", "with the name Maya", a word in quotes or capitals), max 20 characters.
+  A theme or object is NOT text: "flowers", "beach vibes", "strawberry bracelet" and "for my best friend" all have text "". When unsure, use "".
+- motifs: 1 or 2 little pictures from: ${MOTIF_IDS.join(", ")} that clearly fit (e.g. ghost/pumpkin/bat for Halloween, snowflake for winter, clover for luck, cat/paw for pets, cherry for fruit). Never repeat one, never add unrelated ones to fill space. Use [] if none fit.
 - motifPlacement: "ends" (one each side of the text), "between_letters", "repeat" (all over), or "none".
 - backgroundStyle: "solid", "stripes", "diagonal", "zigzag", "checker", or "gradient" (an ombre fade along the bracelet).
 - backgroundColors: 2 to 6 colours for a non-solid background, in order. [] when solid.
@@ -43,6 +44,12 @@ Output: {"text":"MAYA","motifs":["heart"],"motifPlacement":"ends","backgroundCol
 
 Input: sunset bracelet for my friend Jess
 Output: {"text":"JESS","motifs":["sun"],"motifPlacement":"ends","backgroundColor":"purple","backgroundStyle":"gradient","backgroundColors":["yellow","orange","coral","hot pink","purple"],"mainColor":"white","accentColor":"yellow","border":"none","width":11}
+
+Input: flowers
+Output: {"text":"","motifs":["flower"],"motifPlacement":"repeat","backgroundColor":"mint","backgroundStyle":"solid","backgroundColors":[],"mainColor":"white","accentColor":"hot pink","border":"none","width":11}
+
+Input: beach vibes
+Output: {"text":"","motifs":["sun"],"motifPlacement":"repeat","backgroundColor":"sky blue","backgroundStyle":"gradient","backgroundColors":["sky blue","beige","yellow"],"mainColor":"white","accentColor":"white","border":"none","width":11}
 
 Input: spooky halloween bracelet
 Output: {"text":"","motifs":["pumpkin","ghost","bat"],"motifPlacement":"repeat","backgroundColor":"black","backgroundStyle":"stripes","backgroundColors":["black","purple"],"mainColor":"orange","accentColor":"orange","border":"dots","width":13}

@@ -1,6 +1,7 @@
 import { parseDescription } from "@/lib/fallbackParser";
 import type { GenerateResponse } from "@/lib/apiTypes";
 import { sanitizeRecipe } from "@/lib/recipe";
+import { keepRequestedText, tidyMotifs } from "@/lib/textIntent";
 import { generateRecipe, OLLAMA_MODEL } from "@/lib/server/ollama";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,12 @@ export async function POST(request: Request) {
   const started = Date.now();
   try {
     const raw = await generateRecipe(prompt, retry);
-    const recipe = sanitizeRecipe(raw);
+    const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const recipe = sanitizeRecipe({
+      ...r,
+      text: keepRequestedText(prompt, typeof r.text === "string" ? r.text : ""),
+      motifs: tidyMotifs(prompt, sanitizeRecipe(r).motifs),
+    });
     const out: GenerateResponse = { recipe, raw, mode: "ai", model: OLLAMA_MODEL, ms: Date.now() - started };
     return Response.json(out);
   } catch (err) {
