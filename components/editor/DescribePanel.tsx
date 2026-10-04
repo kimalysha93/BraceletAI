@@ -9,9 +9,9 @@ import type { Recipe } from "@/lib/recipe";
 
 const EXAMPLES = [
   "a teal and white bracelet that says HELLO with stars on the ends",
-  "a pink and white bracelet that says MAYA with hearts on both ends",
-  "navy bracelet with moons and stars all over",
-  "yellow and black ZAP! with lightning bolts and a striped border",
+  "a sunset ombre bracelet for my friend JESS",
+  "spooky halloween bracelet with ghosts and pumpkins",
+  "rainbow diagonal stripes with white hearts all over",
 ];
 
 const LOADING_LINES = ["Picking your colours…", "Reading your idea…", "Knotting it together…"];

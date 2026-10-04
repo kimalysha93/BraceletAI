@@ -111,28 +111,43 @@ export function rotatedFootprint(bitmap: Bitmap) {
   return { rows: w, cols: h };
 }
 
-export function stampRotated(
-  grid: Grid,
-  bitmap: Bitmap,
-  startRow: number,
-  main: string,
-  detail: string = main,
-): Grid {
-  const width = grid[0]?.length ?? 0;
+/** Where each filled pixel of a bitmap lands once stamped (rotated, centred across the bracelet). */
+export function rotatedCells(bitmap: Bitmap, startRow: number, width: number): { r: number; c: number; detail: boolean }[] {
   const { rows, cols } = rotatedFootprint(bitmap);
   const startCol = Math.floor((width - cols) / 2);
-  const mainCells: [number, number][] = [];
-  const detailCells: [number, number][] = [];
+  const out: { r: number; c: number; detail: boolean }[] = [];
   for (let gy = 0; gy < bitmap.length; gy++) {
     for (let gx = 0; gx < rows; gx++) {
       const ch = bitmap[gy][gx];
-      if (ch !== "#" && ch !== "+") continue;
-      const r = startRow + gx;
-      const c = startCol + (cols - 1 - gy);
-      (ch === "#" ? mainCells : detailCells).push([r, c]);
+      if (ch === "#" || ch === "+") out.push({ r: startRow + gx, c: startCol + (cols - 1 - gy), detail: ch === "+" });
     }
   }
+  return out;
+}
+
+export function stampRotated(grid: Grid, bitmap: Bitmap, startRow: number, main: string, detail: string = main): Grid {
+  const cells = rotatedCells(bitmap, startRow, grid[0]?.length ?? 0);
+  const mainCells = cells.filter((x) => !x.detail).map((x): [number, number] => [x.r, x.c]);
+  const detailCells = cells.filter((x) => x.detail).map((x): [number, number] => [x.r, x.c]);
   return setCells(setCells(grid, mainCells, main), detailCells, detail);
+}
+
+/** Cells touching the given ones (including diagonals), used to outline letters on busy backgrounds. */
+export function outlineCells(cells: [number, number][], width: number, height: number, minCol = 0, maxCol = width - 1): [number, number][] {
+  const filled = new Set(cells.map(([r, c]) => r * width + c));
+  const out = new Map<number, [number, number]>();
+  for (const [r, c] of cells) {
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const rr = r + dr;
+        const cc = c + dc;
+        if (rr < 0 || rr >= height || cc < minCol || cc > maxCol) continue;
+        const k = rr * width + cc;
+        if (!filled.has(k)) out.set(k, [rr, cc]);
+      }
+    }
+  }
+  return [...out.values()];
 }
 
 /** Map a vertical-layout cell to its position in the horizontal (worn) preview. */

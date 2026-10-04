@@ -34,6 +34,8 @@ export default function TextPanel({
         motifs: hearts ? ["heart"] : [],
         motifPlacement: hearts ? "ends" : "none",
         backgroundColor: bg,
+        backgroundStyle: "solid",
+        backgroundColors: [],
         mainColor: main,
         accentColor: accent,
         border,

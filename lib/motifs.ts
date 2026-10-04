@@ -15,6 +15,12 @@ export const MOTIF_IDS = [
   "lightning",
   "cherry",
   "butterfly",
+  "ghost",
+  "pumpkin",
+  "bat",
+  "snowflake",
+  "clover",
+  "diamond",
 ] as const;
 
 export type MotifId = (typeof MOTIF_IDS)[number];
@@ -86,6 +92,37 @@ export const MOTIFS: Record<MotifId, Motif> = {
     detail: "black",
     bitmap: ["##.....##", "###...###", "####+####", "####+####", ".###+###.", "..##+##..", ".###+###.", ".##...##."],
   },
+  ghost: {
+    id: "ghost",
+    name: "Ghost",
+    bitmap: ["..###..", ".#####.", "##.#.##", "#######", "#######", "#######", "#######", "#.#.#.#"],
+  },
+  pumpkin: {
+    id: "pumpkin",
+    name: "Pumpkin",
+    detail: "green",
+    bitmap: ["....+....", "...++....", ".#######.", "##.###.##", "#########", "#.#.#.#.#", "#########", ".#######."],
+  },
+  bat: {
+    id: "bat",
+    name: "Bat",
+    bitmap: ["#.......#", "##.#.#.##", "#########", "#########", ".##.#.##.", "#...#...#"],
+  },
+  snowflake: {
+    id: "snowflake",
+    name: "Snowflake",
+    bitmap: ["....#....", ".#..#..#.", "..#.#.#..", "...###...", "#########", "...###...", "..#.#.#..", ".#..#..#.", "....#...."],
+  },
+  clover: {
+    id: "clover",
+    name: "Clover",
+    bitmap: [".##...##.", "####.####", "####.####", ".##.#.##.", "....#....", ".##.#.##.", "####.####", "####.####", ".##...##."],
+  },
+  diamond: {
+    id: "diamond",
+    name: "Diamond",
+    bitmap: ["...#...", "..###..", ".#####.", "#######", ".#####.", "..###..", "...#..."],
+  },
 };
 
 export const MOTIF_LIST: Motif[] = MOTIF_IDS.map((id) => MOTIFS[id]);
@@ -138,4 +175,23 @@ export const MOTIF_WORDS: Record<string, MotifId> = {
   cherries: "cherry",
   butterfly: "butterfly",
   butterflies: "butterfly",
+  ghost: "ghost",
+  ghosts: "ghost",
+  boo: "ghost",
+  pumpkin: "pumpkin",
+  pumpkins: "pumpkin",
+  "jack o lantern": "pumpkin",
+  bat: "bat",
+  bats: "bat",
+  snowflake: "snowflake",
+  snowflakes: "snowflake",
+  snow: "snowflake",
+  clover: "clover",
+  clovers: "clover",
+  shamrock: "clover",
+  shamrocks: "clover",
+  diamond: "diamond",
+  diamonds: "diamond",
+  gem: "diamond",
+  gems: "diamond",
 };

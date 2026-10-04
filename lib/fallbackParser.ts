@@ -1,3 +1,4 @@
+import { THEMES, type BackgroundStyle } from "./backgrounds";
 import { MOTIF_WORDS, type MotifId } from "./motifs";
 import { COLOR_WORDS, contrastRatio, contrastingThread } from "./palette";
 import { sanitizeRecipe, type Border, type MotifPlacement, type Recipe } from "./recipe";
@@ -44,11 +45,33 @@ export function parseDescription(input: string): Recipe {
   }
   const colors = [...new Set(found.sort((a, b) => a.at - b.at).map((f) => f.id))];
 
-  // First colour mentioned is the bracelet colour, the second is for letters ("a teal and white bracelet").
-  const bg = colors[0] ?? "white";
-  let main = colors[1] ?? contrastingThread(bg);
+  // ---- theme ("sunset", "halloween"...) and background style ----
+  const themeKey = Object.keys(THEMES).find((k) => new RegExp(`\\b${k}\\b`).test(lower));
+  const theme = themeKey ? THEMES[themeKey] : undefined;
+  const borderWords = "(?:border|edges?|sides)";
+  const stripeBorder = new RegExp(`(stripe[sdy]?|striped)\\s+${borderWords}|${borderWords}\\s+(?:with\\s+)?stripes?`).test(lower);
+  const dotBorder = new RegExp(`(dots?|dotted|polka)\\s+${borderWords}|${borderWords}\\s+(?:with\\s+)?dots|\\bdotted\\b`).test(lower);
+  let style: BackgroundStyle = "solid";
+  if (/\b(ombre|ombré|gradient|fade|fading)\b/.test(lower)) style = "gradient";
+  else if (/\b(zig ?zags?|chevrons?)\b/.test(lower)) style = "zigzag";
+  else if (/\bdiagonal/.test(lower)) style = "diagonal";
+  else if (/\b(checker|checkered|checkerboard|checks)\b/.test(lower)) style = "checker";
+  else if (/\bstripe/.test(lower) && !stripeBorder) style = "stripes";
+  else if (theme) style = theme.style;
+
+  let bgColors: string[] = [];
+  if (style !== "solid") bgColors = colors.length >= 2 ? colors : (theme?.colors ?? [colors[0] ?? "pink", "white"]);
+
+  // Solid: first colour is the bracelet, second is the letters ("a teal and white bracelet").
+  // Patterned: words sit on a panel of the first background colour.
+  const bg = style === "solid" ? (colors[0] ?? theme?.colors[0] ?? "white") : bgColors[bgColors.length - 1];
+  let main = style === "solid" ? (colors[1] ?? theme?.main ?? contrastingThread(bg)) : (theme?.main ?? contrastingThread(bg));
   if (contrastRatio(main, bg) < 1.25) main = contrastingThread(bg);
-  const accent = colors[2] ?? main;
+  // On a patterned background, motifs need a colour the background doesn't use.
+  const accent =
+    style === "solid"
+      ? (colors[2] ?? main)
+      : ([main, theme?.main, "white", contrastingThread(bg)].find((c) => c && !bgColors.includes(c)) ?? main);
 
   // ---- motifs ----
   const motifs: MotifId[] = [];
@@ -59,6 +82,7 @@ export function parseDescription(input: string): Recipe {
     if (idx >= 0) motifHits.push({ id: MOTIF_WORDS[w], at: idx });
   }
   for (const h of motifHits.sort((a, b) => a.at - b.at)) if (!motifs.includes(h.id)) motifs.push(h.id);
+  if (!motifs.length && theme?.motifs) motifs.push(...(theme.motifs as MotifId[]));
 
   // ---- placement ----
   let placement: MotifPlacement = "none";
@@ -71,8 +95,8 @@ export function parseDescription(input: string): Recipe {
 
   // ---- border ----
   let border: Border = "none";
-  if (/\bstripe/.test(lower)) border = "stripes";
-  else if (/\b(dots?|dotted|polka)\b/.test(lower)) border = "dots";
+  if (stripeBorder) border = "stripes";
+  else if (dotBorder) border = "dots";
 
   // ---- width ----
   const widthMatch = lower.match(/\b(\d{1,2})\s*(?:-|\s)?(?:strings?|knots?|wide|columns?)\b/);
@@ -83,6 +107,8 @@ export function parseDescription(input: string): Recipe {
     motifs,
     motifPlacement: placement,
     backgroundColor: bg,
+    backgroundStyle: style,
+    backgroundColors: bgColors,
     mainColor: main,
     accentColor: accent,
     border,

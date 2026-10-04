@@ -76,7 +76,6 @@ const SYNONYMS: Record<string, string> = {
   "sage": "mint",
   "seafoam": "mint",
   chocolate: "brown",
-  sunset: "orange",
 };
 
 /** Map any colour name (or hex) to the closest palette thread id. */

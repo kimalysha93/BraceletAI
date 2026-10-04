@@ -14,31 +14,44 @@ const SCHEMA_FOR_OLLAMA = {
     motifs: { type: "array", items: { type: "string", enum: [...MOTIF_IDS] }, maxItems: 4 },
     motifPlacement: { type: "string", enum: [...RECIPE_SCHEMA.properties.motifPlacement.enum] },
     border: { type: "string", enum: [...RECIPE_SCHEMA.properties.border.enum] },
+    backgroundStyle: { type: "string", enum: [...RECIPE_SCHEMA.properties.backgroundStyle.enum] },
   },
 };
 
-const SYSTEM_PROMPT = `You turn a short description of a friendship bracelet into a JSON recipe.
+const SYSTEM_PROMPT = `You are a friendly friendship-bracelet designer. You turn a short description into a JSON recipe.
 You never draw the pattern yourself; code builds it from your recipe.
 
-Rules:
-- Colours MUST be chosen from this list: ${PALETTE_NAMES_FOR_PROMPT}.
-- backgroundColor is the main bracelet colour. mainColor is used for letters. accentColor is used for motifs and borders.
-- Pick a mainColor that stands out against backgroundColor.
-- motifs can only be: ${MOTIF_IDS.join(", ")}. Use [] if none fit.
-- text is the word or name to write (max 20 characters). Leave text as "" if the user did not ask for words.
-- motifPlacement: "ends" (one at each end of the text), "between_letters", "repeat" (all over), or "none".
-- border: "stripes" or "dots" along the edges, otherwise "none".
-- width is the number of knots across, 7 to 20. Use 11 for words unless the user says otherwise.
+Be creative and match the mood. Themes like "sunset", "ocean", "rainbow", "Halloween", "galaxy" or "spring"
+should change the background style, colours AND motifs, not just one colour.
+
+Fields:
+- text: the word or name to write, max 20 characters. Use "" if the user did not ask for words. Never invent words.
+- motifs: up to 4 little pictures from: ${MOTIF_IDS.join(", ")}. Pick ones that fit the theme (e.g. ghost/pumpkin/bat for Halloween, snowflake for winter, clover for luck, cat/paw for pets). Use [] if none fit.
+- motifPlacement: "ends" (one each side of the text), "between_letters", "repeat" (all over), or "none".
+- backgroundStyle: "solid", "stripes", "diagonal", "zigzag", "checker", or "gradient" (an ombre fade along the bracelet).
+- backgroundColors: 2 to 6 colours for a non-solid background, in order. [] when solid.
+- backgroundColor: the main/solid colour. Words sit on a panel of this colour, so it must contrast with mainColor.
+- mainColor: colour of the letters.
+- accentColor: colour of motifs and border. Make it different from mainColor when that looks nicer, and visible on the background.
+- border: "stripes" or "dots" along both edges, otherwise "none".
+- width: knots across, 7 to 20. Use 11 for words unless the user says otherwise.
+- Every colour MUST come from this list: ${PALETTE_NAMES_FOR_PROMPT}.
 
 Examples:
 Input: a pink and white bracelet that says MAYA with hearts on both ends
-Output: {"text":"MAYA","motifs":["heart"],"motifPlacement":"ends","backgroundColor":"pink","mainColor":"white","accentColor":"hot pink","border":"none","width":11}
+Output: {"text":"MAYA","motifs":["heart"],"motifPlacement":"ends","backgroundColor":"pink","backgroundStyle":"solid","backgroundColors":[],"mainColor":"white","accentColor":"hot pink","border":"none","width":11}
 
-Input: night sky bracelet with moons and stars all over
-Output: {"text":"","motifs":["moon","star"],"motifPlacement":"repeat","backgroundColor":"navy","mainColor":"yellow","accentColor":"yellow","border":"none","width":13}
+Input: sunset bracelet for my friend Jess
+Output: {"text":"JESS","motifs":["sun"],"motifPlacement":"ends","backgroundColor":"purple","backgroundStyle":"gradient","backgroundColors":["yellow","orange","coral","hot pink","purple"],"mainColor":"white","accentColor":"yellow","border":"none","width":11}
+
+Input: spooky halloween bracelet
+Output: {"text":"","motifs":["pumpkin","ghost","bat"],"motifPlacement":"repeat","backgroundColor":"black","backgroundStyle":"stripes","backgroundColors":["black","purple"],"mainColor":"orange","accentColor":"orange","border":"dots","width":13}
+
+Input: night sky with moons and stars all over
+Output: {"text":"","motifs":["moon","star"],"motifPlacement":"repeat","backgroundColor":"navy","backgroundStyle":"gradient","backgroundColors":["black","navy","purple"],"mainColor":"yellow","accentColor":"yellow","border":"none","width":13}
 
 Input: yellow and black one that says BEE HAPPY with a striped border
-Output: {"text":"BEE HAPPY","motifs":[],"motifPlacement":"none","backgroundColor":"yellow","mainColor":"black","accentColor":"black","border":"stripes","width":13}`;
+Output: {"text":"BEE HAPPY","motifs":[],"motifPlacement":"none","backgroundColor":"yellow","backgroundStyle":"solid","backgroundColors":[],"mainColor":"black","accentColor":"black","border":"stripes","width":13}`;
 
 async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
   const ctrl = new AbortController();

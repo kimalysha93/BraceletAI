@@ -163,7 +163,9 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
           </div>
         </div>
         <div>
-          <label className="label" htmlFor="tail">Tail each end</label>
+          <label className="label" htmlFor="tail" title="Loose string left unknotted at both ends so you can tie the bracelet on">
+            Extra for tying
+          </label>
           <input
             id="tail"
             type="number"
@@ -172,6 +174,7 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
             value={toUnit(settings.tailCm)}
             onChange={(e) => update({ tailCm: Math.max(0, fromUnit(Number(e.target.value) || 0)) })}
           />
+          <p className="mt-1 text-[11px] leading-snug text-muted">Loose string at each end for tying it on.</p>
         </div>
         <div>
           <span className="label">Base strings</span>

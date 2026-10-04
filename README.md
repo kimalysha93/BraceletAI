@@ -31,7 +31,7 @@ To use a different model, copy `.env.example` to `.env.local` and change `OLLAMA
 
 ## How the AI part works
 
-The AI never draws knots. It turns your words into a small JSON **recipe** (text, motifs, colours, border, width), using Ollama's structured outputs so the reply is always valid JSON. Then plain code (`lib/recipe.ts`) builds the pattern from a hand-made pixel font and motifs. Click **Show AI recipe** in the editor to see it.
+The AI never draws knots. It turns your words into a small JSON **recipe** (text, motifs, colours, background style like stripes or an ombré fade, border, width), using Ollama's structured outputs so the reply is always valid JSON. Then plain code (`lib/recipe.ts`) builds the pattern from a hand-made pixel font and motifs. Click **Show AI recipe** in the editor to see it.
 
 If the AI is off, takes longer than 10 seconds, or returns junk, the keyword parser (`lib/fallbackParser.ts`) builds the recipe instead, so the demo never fails.
 
@@ -50,7 +50,7 @@ Tip: the editor autosaves a draft in your browser. Use **Library → New pattern
 
 - Knot-style pattern view with row numbers, direction arrows, colour key, and a worn-bracelet preview
 - Editor: pencil, fill, eraser, colour picker, mirror, undo/redo, resize, swap colour, one-click background
-- 12 hand-drawn motifs, a 5×7 pixel font for words, and photo-to-pattern (no AI: downscale and reduce colours)
+- 18 hand-drawn motifs (including Halloween and winter ones), themed backgrounds (rainbow, sunset, ocean…), a 5×7 pixel font for words, and photo-to-pattern (no AI: downscale and reduce colours)
 - String calculator with loop / braid / tape starts, cm or inches, a calibrate mode, and "ran short / too long" feedback (saved to `data/feedback.json`)
 - Pattern library with search, filters, remix credit and remix counts
 - PNG export and a print view

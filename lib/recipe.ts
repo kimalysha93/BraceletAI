@@ -1,6 +1,7 @@
-import { MAX_HEIGHT } from "./constants";
+import { BACKGROUND_STYLES, paintBackground, type BackgroundStyle } from "./backgrounds";
+import { MAX_COLORS, MAX_HEIGHT } from "./constants";
 import { FONT_HEIGHT, glyphsFor, normalizeText } from "./font";
-import { createGrid, mostCommonColor, rotatedFootprint, setCells, stampRotated, type Bitmap, type Grid } from "./grid";
+import { createGrid, mostCommonColor, outlineCells, rotatedCells, rotatedFootprint, setCells, stampRotated, type Bitmap, type Grid } from "./grid";
 import { MOTIF_IDS, MOTIFS, type MotifId } from "./motifs";
 import { contrastRatio, contrastingThread, resolveColor, THREAD_NAMES } from "./palette";
 
@@ -12,7 +13,9 @@ export type Recipe = {
   text: string;
   motifs: MotifId[];
   motifPlacement: MotifPlacement;
-  backgroundColor: string;
+  backgroundColor: string; // solid colour, also the panel behind words on busy backgrounds
+  backgroundStyle: BackgroundStyle;
+  backgroundColors: string[]; // colours for the background style (empty when solid)
   mainColor: string;
   accentColor?: string;
   border: Border;
@@ -26,12 +29,14 @@ export const RECIPE_SCHEMA = {
     motifs: { type: "array", items: { enum: [...MOTIF_IDS] }, maxItems: 4 },
     motifPlacement: { enum: ["ends", "between_letters", "repeat", "none"] },
     backgroundColor: { type: "string" },
+    backgroundStyle: { enum: [...BACKGROUND_STYLES] },
+    backgroundColors: { type: "array", items: { type: "string" }, maxItems: 6 },
     mainColor: { type: "string" },
     accentColor: { type: "string" },
     border: { enum: ["none", "stripes", "dots"] },
     width: { type: "integer", minimum: 7, maximum: 20 },
   },
-  required: ["text", "motifs", "motifPlacement", "backgroundColor", "mainColor", "border", "width"],
+  required: ["text", "motifs", "motifPlacement", "backgroundColor", "backgroundStyle", "backgroundColors", "mainColor", "accentColor", "border", "width"],
 } as const;
 
 const PLACEMENTS: MotifPlacement[] = ["ends", "between_letters", "repeat", "none"];
@@ -52,7 +57,11 @@ export function sanitizeRecipe(raw: unknown): Recipe {
   else if (motifPlacement === "none") motifPlacement = text ? "ends" : "repeat";
   if (!text && motifPlacement !== "none") motifPlacement = "repeat";
 
-  const backgroundColor = resolveColor(r.backgroundColor as string, "white");
+  const style = BACKGROUND_STYLES.includes(r.backgroundStyle as BackgroundStyle) ? (r.backgroundStyle as BackgroundStyle) : "solid";
+  let backgroundColors = [
+    ...new Set((Array.isArray(r.backgroundColors) ? r.backgroundColors : []).map((c) => resolveColor(String(c), "")).filter(Boolean)),
+  ].slice(0, 6);
+  const backgroundColor = resolveColor(r.backgroundColor as string, backgroundColors[0] ?? "white");
   let mainColor = resolveColor(r.mainColor as string, contrastingThread(backgroundColor));
   if (mainColor === backgroundColor || contrastRatio(mainColor, backgroundColor) < 1.25) {
     mainColor = contrastingThread(backgroundColor);
@@ -60,14 +69,42 @@ export function sanitizeRecipe(raw: unknown): Recipe {
   let accentColor = resolveColor(r.accentColor as string, mainColor);
   if (accentColor === backgroundColor) accentColor = mainColor;
 
+  let backgroundStyle: BackgroundStyle = style;
+  if (backgroundStyle === "solid") backgroundColors = [];
+  else {
+    if (backgroundColors.length < 2) {
+      backgroundColors = [...new Set([backgroundColor, ...backgroundColors, accentColor !== backgroundColor ? accentColor : "white"])];
+    }
+    if (backgroundColors.length < 2) backgroundStyle = "solid";
+  }
+  // Motifs should stand out from a patterned background.
+  if (backgroundStyle !== "solid" && backgroundColors.includes(accentColor)) {
+    accentColor = [mainColor, "white", contrastingThread(backgroundColor), "black"].find((c) => !backgroundColors.includes(c)) ?? accentColor;
+  }
+  // Keep within the colour limit by dropping background colours from the end.
+  const detailColors = motifs.map((id) => MOTIFS[id].detail).filter(Boolean).map((c) => resolveColor(c));
+  const countUsed = () => new Set([...backgroundColors, backgroundColor, mainColor, accentColor, ...detailColors]).size;
+  while (countUsed() > MAX_COLORS && backgroundColors.length > 2) backgroundColors.pop();
+
   const border = BORDERS.includes(r.border as Border) ? (r.border as Border) : "none";
   const w = Number(r.width);
   const width = Number.isFinite(w) ? Math.min(20, Math.max(7, Math.round(w))) : 11;
 
-  return { text, motifs, motifPlacement, backgroundColor, mainColor, accentColor, border, width };
+  return {
+    text,
+    motifs,
+    motifPlacement,
+    backgroundColor,
+    backgroundStyle,
+    backgroundColors: backgroundStyle === "solid" ? [] : backgroundColors,
+    mainColor,
+    accentColor,
+    border,
+    width,
+  };
 }
 
-type Block = { kind: "glyph"; bitmap: Bitmap; color: string; detail?: string } | { kind: "gap"; rows: number };
+type Block = { kind: "glyph"; bitmap: Bitmap; color: string; detail?: string; isText?: boolean } | { kind: "gap"; rows: number };
 
 function blockRows(b: Block) {
   return b.kind === "gap" ? b.rows : rotatedFootprint(b.bitmap).rows;
@@ -103,7 +140,7 @@ export function buildFromRecipe(input: Recipe, opts: BuildOptions = {}): BuildRe
   const letters: Block[] = [];
   glyphsFor(recipe.text).forEach((bitmap, i) => {
     if (i > 0) letters.push({ kind: "gap", rows: spacing });
-    letters.push({ kind: "glyph", bitmap, color: main });
+    letters.push({ kind: "glyph", bitmap, color: main, isText: true });
   });
   const motifBlock = (i: number): Block => {
     const m = motifs[i % motifs.length];
@@ -155,9 +192,32 @@ export function buildFromRecipe(input: Recipe, opts: BuildOptions = {}): BuildRe
   }
 
   const content = total(blocks);
-  const height = Math.min(MAX_HEIGHT, Math.max(opts.minHeight ?? 24, content + margin * 2));
-  let grid = createGrid(width, height, bg);
-  let row = Math.floor((height - content) / 2);
+  const busy = recipe.backgroundStyle !== "solid";
+  // Leave room for a patterned background to show around the words.
+  const minHeight = opts.minHeight ?? (busy ? Math.max(40, content + 16) : 24);
+  const height = Math.min(MAX_HEIGHT, Math.max(minHeight, content + margin * 2));
+  let grid = busy ? paintBackground(width, height, recipe.backgroundStyle, recipe.backgroundColors) : createGrid(width, height, bg);
+  const start = Math.floor((height - content) / 2);
+
+  // On a busy background, letters get a 1-knot outline in the solid colour so they stay readable
+  // while the pattern still shows around them. Motifs only get one if their colour is in the background.
+  if (busy) {
+    const inner: [number, number] = recipe.border === "none" ? [0, width - 1] : [1, width - 2];
+    const motifsClash = recipe.backgroundColors.includes(accent);
+    const textCells: [number, number][] = [];
+    let row = start;
+    for (const b of blocks) {
+      if (b.kind === "glyph" && (b.isText || motifsClash)) {
+        const cells = rotatedCells(b.bitmap, row, width).map((x): [number, number] => [x.r, x.c]);
+        if (b.isText) textCells.push(...cells);
+        else grid = setCells(grid, outlineCells(cells, width, height, ...inner), bg);
+      }
+      row += blockRows(b);
+    }
+    if (textCells.length) grid = setCells(grid, outlineCells(textCells, width, height, ...inner), bg);
+  }
+
+  let row = start;
   for (const b of blocks) {
     if (b.kind === "glyph") grid = stampRotated(grid, b.bitmap, row, b.color, b.detail ?? b.color);
     row += blockRows(b);
