@@ -249,7 +249,8 @@ export default function Editor() {
   };
 
   const applyRecipe = (recipe: Recipe) => {
-    const built = buildFromRecipe(recipe);
+    // Keep the bracelet the size it already is; the builder fits the design inside it.
+    const built = buildFromRecipe(recipe, { width: W, height: H });
     const r = built.recipe;
     const name = r.text ? titleCase(r.text) : r.motifs.length ? r.motifs.map((m) => MOTIFS[m].name).join(" & ") : "My";
     loadPattern(built.grid, {

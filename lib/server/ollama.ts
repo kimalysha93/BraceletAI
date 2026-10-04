@@ -1,5 +1,5 @@
 import "server-only";
-import { MOTIF_IDS } from "../motifs";
+import { MOTIF_CATEGORIES, MOTIF_IDS, MOTIF_LIST } from "../motifs";
 import { PALETTE_NAMES_FOR_PROMPT, RECIPE_SCHEMA } from "../recipe";
 
 export const OLLAMA_HOST = (process.env.OLLAMA_HOST || "http://localhost:11434").replace(/\/$/, "");
@@ -18,8 +18,13 @@ const SCHEMA_FOR_OLLAMA = {
   },
 };
 
+// Grouped so a small model can scan for the right picture instead of reading one long list.
+const MOTIFS_FOR_PROMPT = MOTIF_CATEGORIES.map(
+  (c) => `  ${c.name}: ${MOTIF_LIST.filter((m) => m.category === c.id).map((m) => m.id).join(", ")}`,
+).join("\n");
+
 const SYSTEM_PROMPT = `You are a friendly friendship-bracelet designer. You turn a short description into a JSON recipe.
-You never draw the pattern yourself; code builds it from your recipe.
+You never draw the pattern yourself, and you never choose its size: code fits your recipe into the bracelet the person already has.
 
 Be creative and match the mood. Themes like "sunset", "ocean", "rainbow", "Halloween", "galaxy" or "spring"
 should change the background style, colours AND motifs, not just one colour.
@@ -27,7 +32,9 @@ should change the background style, colours AND motifs, not just one colour.
 Fields:
 - text: ONLY a word or name the user explicitly asked to write (e.g. "says HELLO", "with the name Maya", a word in quotes or capitals), max 20 characters.
   A theme or object is NOT text: "flowers", "beach vibes", "strawberry bracelet" and "for my best friend" all have text "". When unsure, use "".
-- motifs: 1 or 2 little pictures from: ${MOTIF_IDS.join(", ")} that clearly fit (e.g. ghost/pumpkin/bat for Halloween, snowflake for winter, clover for luck, cat/paw for pets, cherry for fruit). Never repeat one, never add unrelated ones to fill space. Use [] if none fit.
+- motifs: 1 or 2 little pictures that clearly fit, chosen ONLY from these ids:
+${MOTIFS_FOR_PROMPT}
+  Pick the closest match (e.g. ghost/pumpkin/bat for Halloween, dino for dinosaurs, bee/sunflower for summer gardens, gamepad for gamers, cupcake for birthdays). Never repeat one, never add unrelated ones to fill space. Use [] if none fit.
 - motifPlacement: "ends" (one each side of the text), "between_letters", "repeat" (all over), or "none".
 - backgroundStyle: "solid", "stripes", "diagonal", "zigzag", "checker", or "gradient" (an ombre fade along the bracelet).
 - backgroundColors: 2 to 6 colours for a non-solid background, in order. [] when solid.
@@ -35,30 +42,36 @@ Fields:
 - mainColor: colour of the letters.
 - accentColor: colour of motifs and border. Make it different from mainColor when that looks nicer, and visible on the background.
 - border: "stripes" or "dots" along both edges, otherwise "none".
-- width: knots across, 7 to 20. Use 11 for words unless the user says otherwise.
+- Colour words belong to the thing they describe: "pink hearts" means accentColor pink (NOT the background),
+  "white letters" means mainColor white, "on a navy background" or "a navy bracelet" means backgroundColor navy.
+  If a picture has an obvious real colour and none is given, use it (red apples, green frogs, yellow sun).
+  The background must never be the same colour as the motifs.
 - Every colour MUST come from this list: ${PALETTE_NAMES_FOR_PROMPT}.
 
 Examples:
 Input: a pink and white bracelet that says MAYA with hearts on both ends
-Output: {"text":"MAYA","motifs":["heart"],"motifPlacement":"ends","backgroundColor":"pink","backgroundStyle":"solid","backgroundColors":[],"mainColor":"white","accentColor":"hot pink","border":"none","width":11}
+Output: {"text":"MAYA","motifs":["heart"],"motifPlacement":"ends","backgroundColor":"pink","backgroundStyle":"solid","backgroundColors":[],"mainColor":"white","accentColor":"hot pink","border":"none"}
 
 Input: sunset bracelet for my friend Jess
-Output: {"text":"JESS","motifs":["sun"],"motifPlacement":"ends","backgroundColor":"purple","backgroundStyle":"gradient","backgroundColors":["yellow","orange","coral","hot pink","purple"],"mainColor":"white","accentColor":"yellow","border":"none","width":11}
+Output: {"text":"JESS","motifs":["sun"],"motifPlacement":"ends","backgroundColor":"purple","backgroundStyle":"gradient","backgroundColors":["yellow","orange","coral","hot pink","purple"],"mainColor":"white","accentColor":"yellow","border":"none"}
+
+Input: pink hearts
+Output: {"text":"","motifs":["heart"],"motifPlacement":"repeat","backgroundColor":"white","backgroundStyle":"solid","backgroundColors":[],"mainColor":"hot pink","accentColor":"pink","border":"none"}
 
 Input: flowers
-Output: {"text":"","motifs":["flower"],"motifPlacement":"repeat","backgroundColor":"mint","backgroundStyle":"solid","backgroundColors":[],"mainColor":"white","accentColor":"hot pink","border":"none","width":11}
+Output: {"text":"","motifs":["flower"],"motifPlacement":"repeat","backgroundColor":"mint","backgroundStyle":"solid","backgroundColors":[],"mainColor":"white","accentColor":"hot pink","border":"none"}
 
 Input: beach vibes
-Output: {"text":"","motifs":["sun"],"motifPlacement":"repeat","backgroundColor":"sky blue","backgroundStyle":"gradient","backgroundColors":["sky blue","beige","yellow"],"mainColor":"white","accentColor":"white","border":"none","width":11}
+Output: {"text":"","motifs":["sun"],"motifPlacement":"repeat","backgroundColor":"sky blue","backgroundStyle":"gradient","backgroundColors":["sky blue","beige","yellow"],"mainColor":"white","accentColor":"white","border":"none"}
 
 Input: spooky halloween bracelet
-Output: {"text":"","motifs":["pumpkin","ghost","bat"],"motifPlacement":"repeat","backgroundColor":"black","backgroundStyle":"stripes","backgroundColors":["black","purple"],"mainColor":"orange","accentColor":"orange","border":"dots","width":13}
+Output: {"text":"","motifs":["pumpkin","ghost","bat"],"motifPlacement":"repeat","backgroundColor":"black","backgroundStyle":"stripes","backgroundColors":["black","purple"],"mainColor":"orange","accentColor":"orange","border":"dots"}
 
 Input: night sky with moons and stars all over
-Output: {"text":"","motifs":["moon","star"],"motifPlacement":"repeat","backgroundColor":"navy","backgroundStyle":"gradient","backgroundColors":["black","navy","purple"],"mainColor":"yellow","accentColor":"yellow","border":"none","width":13}
+Output: {"text":"","motifs":["moon","star"],"motifPlacement":"repeat","backgroundColor":"navy","backgroundStyle":"gradient","backgroundColors":["black","navy","purple"],"mainColor":"yellow","accentColor":"yellow","border":"none"}
 
 Input: yellow and black one that says BEE HAPPY with a striped border
-Output: {"text":"BEE HAPPY","motifs":[],"motifPlacement":"none","backgroundColor":"yellow","backgroundStyle":"solid","backgroundColors":[],"mainColor":"black","accentColor":"black","border":"stripes","width":13}`;
+Output: {"text":"BEE HAPPY","motifs":[],"motifPlacement":"none","backgroundColor":"yellow","backgroundStyle":"solid","backgroundColors":[],"mainColor":"black","accentColor":"black","border":"stripes"}`;
 
 async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
   const ctrl = new AbortController();

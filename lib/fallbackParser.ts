@@ -1,4 +1,5 @@
 import { THEMES, type BackgroundStyle } from "./backgrounds";
+import { applyColorIntent, readColorIntent } from "./colorIntent";
 import { MOTIF_WORDS, type MotifId } from "./motifs";
 import { COLOR_WORDS, contrastRatio, contrastingThread } from "./palette";
 import { sanitizeRecipe, type Border, type MotifPlacement, type Recipe } from "./recipe";
@@ -43,7 +44,11 @@ export function parseDescription(input: string): Recipe {
       scan = scan.slice(0, m.index) + " ".repeat(word.length) + scan.slice(m.index + word.length);
     }
   }
-  const colors = [...new Set(found.sort((a, b) => a.at - b.at).map((f) => f.id))];
+  // Colours tied to the pictures or the letters ("pink hearts", "white letters") aren't the bracelet's colours.
+  const intent = readColorIntent(text);
+  const colors = [...new Set(found.sort((a, b) => a.at - b.at).map((f) => f.id))].filter(
+    (c) => c === intent.background || (c !== intent.motif && c !== intent.text),
+  );
 
   // ---- theme ("sunset", "halloween"...) and background style ----
   const themeKey = Object.keys(THEMES).find((k) => new RegExp(`\\b${k}\\b`).test(lower));
@@ -102,7 +107,7 @@ export function parseDescription(input: string): Recipe {
   const widthMatch = lower.match(/\b(\d{1,2})\s*(?:-|\s)?(?:strings?|knots?|wide|columns?)\b/);
   const width = widthMatch ? Number(widthMatch[1]) : 11;
 
-  return sanitizeRecipe({
+  const recipe = sanitizeRecipe({
     text: words,
     motifs,
     motifPlacement: placement,
@@ -114,4 +119,5 @@ export function parseDescription(input: string): Recipe {
     border,
     width,
   });
+  return applyColorIntent(recipe, intent);
 }

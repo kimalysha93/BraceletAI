@@ -1,9 +1,9 @@
 "use client";
 
-import { Heart } from "lucide-react";
-import { useState } from "react";
+import { Heart, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { rotatedFootprint } from "@/lib/grid";
-import { MOTIF_LIST, type Motif, type MotifId } from "@/lib/motifs";
+import { MOTIF_CATEGORIES, MOTIF_LIST, MOTIF_WORDS, type Motif, type MotifCategory, type MotifId } from "@/lib/motifs";
 import { getThread, resolveColor } from "@/lib/palette";
 import ColorDropdown from "../ui/ColorDropdown";
 
@@ -40,7 +40,17 @@ export default function MotifPanel({
 }) {
   const [row, setRow] = useState(3);
   const [twoTone, setTwoTone] = useState(true);
+  const [category, setCategory] = useState<MotifCategory | "all">("all");
+  const [query, setQuery] = useState("");
   const safeRow = Math.min(Math.max(1, row), height);
+
+  // Search matches names and the same everyday words the AI understands ("puppy" finds the dog).
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return MOTIF_LIST.filter((m) => category === "all" || m.category === category);
+    const viaWords = new Set(Object.entries(MOTIF_WORDS).filter(([w]) => w.startsWith(q)).map(([, id]) => id));
+    return MOTIF_LIST.filter((m) => m.name.toLowerCase().includes(q) || viaWords.has(m.id));
+  }, [category, query]);
 
   return (
     <div className="space-y-4">
@@ -69,8 +79,38 @@ export default function MotifPanel({
         Use detail colours (flower centres, cherry stems…)
       </label>
 
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="search"
+            className="input pl-9"
+            placeholder={`Search ${MOTIF_LIST.length} motifs`}
+            aria-label="Search motifs"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        {!query.trim() && (
+          <div className="flex flex-wrap gap-1.5">
+            {[{ id: "all" as const, name: "All" }, ...MOTIF_CATEGORIES].map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setCategory(c.id)}
+                className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
+                  category === c.id ? "border-berry bg-blush text-berry-dark" : "border-line bg-white text-muted hover:text-ink"
+                }`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {!shown.length && <p className="text-sm text-muted">No motifs match “{query.trim()}”.</p>}
       <div className="grid grid-cols-3 gap-2">
-        {MOTIF_LIST.map((m) => {
+        {shown.map((m) => {
           const detail = twoTone && m.detail ? resolveColor(m.detail) : color;
           return (
             <button

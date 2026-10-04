@@ -8,7 +8,7 @@ import { parseDescription } from "@/lib/fallbackParser";
 import type { Recipe } from "@/lib/recipe";
 
 const EXAMPLES = [
-  "a teal and white bracelet that says HELLO with stars on the ends",
+  "a teal and white bracelet that says JOY with stars on the ends",
   "a sunset ombre bracelet for my friend JESS",
   "spooky halloween bracelet with ghosts and pumpkins",
   "rainbow diagonal stripes with white hearts all over",
@@ -105,7 +105,7 @@ export default function DescribePanel({
           }}
           rows={3}
           maxLength={300}
-          placeholder="e.g. a mint and white bracelet that says LUCY with flowers on the ends"
+          placeholder="e.g. a mint and white bracelet that says MIA with flowers on the ends"
           className="input resize-none text-[15px] leading-snug"
         />
         <button type="submit" className="btn-primary w-full py-2.5 text-[15px]" disabled={!prompt.trim() || loading}>

@@ -1,3 +1,4 @@
+import { applyColorIntent, readColorIntent } from "@/lib/colorIntent";
 import { parseDescription } from "@/lib/fallbackParser";
 import type { GenerateResponse } from "@/lib/apiTypes";
 import { sanitizeRecipe } from "@/lib/recipe";
@@ -22,11 +23,14 @@ export async function POST(request: Request) {
   try {
     const raw = await generateRecipe(prompt, retry);
     const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-    const recipe = sanitizeRecipe({
-      ...r,
-      text: keepRequestedText(prompt, typeof r.text === "string" ? r.text : ""),
-      motifs: tidyMotifs(prompt, sanitizeRecipe(r).motifs),
-    });
+    const recipe = applyColorIntent(
+      sanitizeRecipe({
+        ...r,
+        text: keepRequestedText(prompt, typeof r.text === "string" ? r.text : ""),
+        motifs: tidyMotifs(prompt, sanitizeRecipe(r).motifs),
+      }),
+      readColorIntent(prompt),
+    );
     const out: GenerateResponse = { recipe, raw, mode: "ai", model: OLLAMA_MODEL, ms: Date.now() - started };
     return Response.json(out);
   } catch (err) {
