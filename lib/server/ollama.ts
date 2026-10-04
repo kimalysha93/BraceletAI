@@ -34,7 +34,7 @@ Fields:
   A theme or object is NOT text: "flowers", "beach vibes", "strawberry bracelet" and "for my best friend" all have text "". When unsure, use "".
 - motifs: 1 or 2 little pictures that clearly fit, chosen ONLY from these ids:
 ${MOTIFS_FOR_PROMPT}
-  Pick the closest match (e.g. ghost/pumpkin/bat for Halloween, dino for dinosaurs, bee/sunflower for summer gardens, gamepad for gamers, cupcake for birthdays). Never repeat one, never add unrelated ones to fill space. Use [] if none fit.
+  Pick the closest match (e.g. ghost/pumpkin/bat for Halloween, dino for dinosaurs, bee/sunflower for summer gardens, gamepad for gamers, cupcake for birthdays, boba for bubble tea, unicorn for magic, shell/starfish for the beach, snowman for winter). Never repeat one, never add unrelated ones to fill space. Use [] if none fit.
 - motifPlacement: "ends" (one each side of the text), "between_letters", "repeat" (all over), or "none".
 - backgroundStyle: "solid", "stripes", "diagonal", "zigzag", "checker", or "gradient" (an ombre fade along the bracelet).
 - backgroundColors: 2 to 6 colours for a non-solid background, in order. [] when solid.

@@ -11,7 +11,8 @@ import {
 } from "./stringConfig";
 
 export type StringSettings = {
-  finishedLengthCm: number;
+  /** A length to repeat the pattern up to. Unset = the bracelet is as long as the pattern. */
+  customLengthCm?: number;
   tailCm: number;
   startMethod: StartMethod;
   unit: "cm" | "in";
@@ -30,6 +31,8 @@ export type StringPlan = {
   totals: { colorId: string; name: string; hex: string; cm: number }[];
   repeats: number;
   patternLengthCm: number;
+  finishedLengthCm: number;
+  isCustomLength: boolean;
   note: string;
   knotLengthCm: number;
 };
@@ -43,10 +46,13 @@ export function calculateStrings(grid: Grid, s: StringSettings): StringPlan {
 
   // How many times the pattern repeats to reach the finished length.
   const patternLengthCm = rows * ROW_HEIGHT_CM;
-  const repeats = Math.max(1, s.finishedLengthCm / Math.max(patternLengthCm, 0.1));
+  const isCustomLength = s.customLengthCm != null && s.customLengthCm > 0;
+  const finishedLengthCm = isCustomLength ? s.customLengthCm! : patternLengthCm;
+  const repeats = Math.max(1, finishedLengthCm / Math.max(patternLengthCm, 0.1));
 
   const baseCount = width + BASE_STRING_OFFSET;
-  const baseCutCm = s.finishedLengthCm + 2 * s.tailCm + START_ALLOWANCE_CM[s.startMethod];
+  // Never cut base strings shorter than the pattern itself.
+  const baseCutCm = Math.max(finishedLengthCm, patternLengthCm) + 2 * s.tailCm + START_ALLOWANCE_CM[s.startMethod];
 
   let basePieces: StringPlan["basePieces"];
   if (s.startMethod === "loop") {
@@ -79,7 +85,7 @@ export function calculateStrings(grid: Grid, s: StringSettings): StringPlan {
       ? `Cut ${piece.count} ${baseName} base string${piece.count === 1 ? "" : "s"} at ${formatLength(piece.cutCm, s.unit)} and fold them in half for ${baseCount} strings${basePieces[1] ? `, plus 1 more at ${formatLength(basePieces[1].cutCm, s.unit)}` : ""}.`
       : `Cut ${baseCount} ${baseName} base strings at ${formatLength(baseCutCm, s.unit)}.`;
 
-  return { baseCount, baseColor, baseCutCm, basePieces, working, totals, repeats, patternLengthCm, note, knotLengthCm: knotLength };
+  return { baseCount, baseColor, baseCutCm, basePieces, working, totals, repeats, patternLengthCm, finishedLengthCm, isCustomLength, note, knotLengthCm: knotLength };
 }
 
 export function formatLength(cm: number, unit: "cm" | "in"): string {

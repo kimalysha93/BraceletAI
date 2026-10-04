@@ -68,6 +68,8 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
   const [calOpen, setCalOpen] = useState(false);
   const totalKnots = grid.length * (grid[0]?.length ?? 0);
   const [cal, setCal] = useState({ knots: "", used: "", strings: "" });
+  // What's being typed in the length box, so clearing it doesn't snap back mid-edit.
+  const [lengthDraft, setLengthDraft] = useState<string | null>(null);
 
   const sendFeedback = async (result: "short" | "long" | "right") => {
     const body = {
@@ -75,7 +77,7 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
       patternId,
       width: grid[0]?.length,
       height: grid.length,
-      finishedLengthCm: settings.finishedLengthCm,
+      finishedLengthCm: plan.finishedLengthCm,
       tailCm: settings.tailCm,
       startMethod: settings.startMethod,
       knotLengthCm: plan.knotLengthCm,
@@ -128,10 +130,29 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
               min={1}
               step={unit === "in" ? 0.5 : 1}
               className="input"
-              value={toUnit(settings.finishedLengthCm)}
-              onChange={(e) => update({ finishedLengthCm: Math.max(1, fromUnit(Number(e.target.value) || 0)) })}
+              value={lengthDraft ?? toUnit(plan.finishedLengthCm)}
+              onChange={(e) => {
+                setLengthDraft(e.target.value);
+                const v = Number(e.target.value);
+                if (v > 0) update({ customLengthCm: fromUnit(v) });
+              }}
+              onBlur={() => setLengthDraft(null)}
             />
           </div>
+          {plan.isCustomLength ? (
+            <p className="mt-1 text-[11px] leading-snug text-muted">
+              Custom length.{" "}
+              <button className="font-bold text-berry-dark hover:underline" onClick={() => {
+                  setLengthDraft(null);
+                  update({ customLengthCm: undefined });
+                }}
+              >
+                Match the {grid.length} rows ({formatLength(plan.patternLengthCm, unit)})
+              </button>
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] leading-snug text-muted">Matches your {grid.length} rows. Type a length to repeat the pattern.</p>
+          )}
         </div>
         <div>
           <span className="label">Units</span>
@@ -197,10 +218,15 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
           <Scissors className="mt-0.5 h-4 w-4 shrink-0 text-berry" />
           {plan.note}
         </p>
+        {plan.isCustomLength && plan.finishedLengthCm < plan.patternLengthCm - 0.05 && (
+          <p className="mt-1.5 pl-6 text-xs text-muted">
+            That&apos;s shorter than the pattern ({formatLength(plan.patternLengthCm, unit)}), so the base strings are cut for the whole pattern.
+          </p>
+        )}
         {plan.repeats > 1.05 && (
           <p className="mt-1.5 pl-6 text-xs text-muted">
             The pattern is about {formatLength(plan.patternLengthCm, unit)} long, so repeat it about {plan.repeats.toFixed(1)}× to reach{" "}
-            {formatLength(settings.finishedLengthCm, unit)}.
+            {formatLength(plan.finishedLengthCm, unit)}.
           </p>
         )}
       </div>

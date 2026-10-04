@@ -77,7 +77,8 @@ export function applyColorIntent(input: Recipe, intent: ColorIntent): Recipe {
   else if (r.motifs.length) {
     const accent = r.accentColor ?? r.mainColor;
     const weak = accent === r.backgroundColor || contrastRatio(accent, r.backgroundColor) < 1.4 || r.backgroundColors.includes(accent);
-    if (natural && (weak || accent === r.mainColor) && natural !== r.backgroundColor && !r.backgroundColors.includes(natural)) {
+    const naturalShows = (c: string) => contrastRatio(c, r.backgroundColor) >= 1.6 && !r.backgroundColors.includes(c);
+    if (natural && naturalShows(natural) && (weak || accent === r.mainColor)) {
       r.accentColor = natural;
     }
   }

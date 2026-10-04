@@ -15,7 +15,8 @@ const listeners = new Set<() => void>();
 function get(): Store {
   if (!state) {
     state = {
-      settings: { ...DEFAULT_STRING_SETTINGS, ...loadLocal<Partial<StringSettings>>(KEYS.stringSettings, {}) },
+      // The custom length isn't restored: a new visit starts with the length matching the pattern.
+      settings: { ...DEFAULT_STRING_SETTINGS, ...loadLocal<Partial<StringSettings>>(KEYS.stringSettings, {}), customLengthCm: undefined },
       knotLengthCm: loadLocal<number | null>(KEYS.knotLength, null),
     };
   }
@@ -43,7 +44,7 @@ export function useStringSettings() {
     defaultKnotLength: KNOT_LENGTH_CM,
     update(patch: Partial<StringSettings>) {
       const settings = { ...get().settings, ...patch };
-      saveLocal(KEYS.stringSettings, { ...settings, baseColor: undefined });
+      saveLocal(KEYS.stringSettings, { ...settings, baseColor: undefined, customLengthCm: undefined });
       set({ ...get(), settings });
     },
     setKnotLength(v: number | null) {

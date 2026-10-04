@@ -23,7 +23,6 @@ export const START_ALLOWANCE_CM = {
 export type StartMethod = keyof typeof START_ALLOWANCE_CM;
 
 export const DEFAULT_STRING_SETTINGS = {
-  finishedLengthCm: 16,
   tailCm: 10,
   startMethod: "loop" as StartMethod,
   unit: "cm" as "cm" | "in",
