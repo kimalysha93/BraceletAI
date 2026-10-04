@@ -14,6 +14,14 @@ const WIDTHS = [
   { id: "wide", label: "Wide (16+)", test: (w: number) => w >= 16 },
 ];
 
+// Lengths in rows, labelled with roughly how long they knot up (0.4 cm per row).
+const LENGTHS = [
+  { id: "any", label: "Any length", hint: "", test: () => true },
+  { id: "short", label: "Short / kids", hint: "Up to 35 rows (about 14 cm)", test: (h: number) => h <= 35 },
+  { id: "standard", label: "Standard", hint: "36 to 60 rows (about 14–24 cm)", test: (h: number) => h >= 36 && h <= 60 },
+  { id: "long", label: "Long / anklets", hint: "61+ rows (24 cm or more)", test: (h: number) => h > 60 },
+];
+
 const COLORS = [
   { id: "any", label: "Any", test: () => true },
   { id: "2", label: "2", test: (n: number) => n <= 2 },
@@ -26,6 +34,7 @@ export default function LibraryBrowser() {
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [width, setWidth] = useState("any");
+  const [length, setLength] = useState("any");
   const [colors, setColors] = useState("any");
 
   const popularTags = useMemo(() => {
@@ -40,6 +49,7 @@ export default function LibraryBrowser() {
   const results = useMemo(() => {
     const query = q.trim().toLowerCase();
     const wTest = WIDTHS.find((w) => w.id === width)!.test;
+    const lTest = LENGTHS.find((l) => l.id === length)!.test;
     const cTest = COLORS.find((c) => c.id === colors)!.test;
     return (patterns ?? []).filter(
       (p) =>
@@ -48,9 +58,10 @@ export default function LibraryBrowser() {
           p.author.toLowerCase().includes(query) ||
           p.tags.some((t) => t.includes(query))) &&
         wTest(p.width) &&
+        lTest(p.height) &&
         cTest(p.palette.length),
     );
-  }, [patterns, q, width, colors]);
+  }, [patterns, q, width, length, colors]);
 
   const pill = (active: boolean) =>
     `rounded-full border px-3 py-1.5 text-sm font-bold transition ${active ? "border-berry bg-blush text-berry-dark" : "border-line bg-white text-muted hover:text-ink"}`;
@@ -81,6 +92,12 @@ export default function LibraryBrowser() {
           {WIDTHS.map((w) => (
             <button key={w.id} className={pill(width === w.id)} onClick={() => setWidth(w.id)}>
               {w.label}
+            </button>
+          ))}
+          <span className="mx-1 h-6 w-px bg-line" />
+          {LENGTHS.map((l) => (
+            <button key={l.id} className={pill(length === l.id)} title={l.hint || undefined} onClick={() => setLength(l.id)}>
+              {l.label}
             </button>
           ))}
           <span className="mx-1 h-6 w-px bg-line" />
