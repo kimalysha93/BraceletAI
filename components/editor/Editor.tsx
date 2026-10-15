@@ -16,7 +16,7 @@ import {
   Type,
   Undo2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MAX_COLORS, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH } from "@/lib/constants";
 import { downloadPatternPng } from "@/lib/exportPng";
@@ -89,8 +89,9 @@ function isDraft(d: unknown): d is Draft {
   );
 }
 
-function readStart() {
-  const params = new URLSearchParams(window.location.search);
+// Takes Next's search params, not window.location: on a client-side navigation the page renders
+// before the address bar changes, so window.location would still show the previous page.
+function readStart(params: Pick<URLSearchParams, "get">) {
   const remix = params.get("remix");
   const mode = params.get("mode");
   const draft = !remix && params.get("new") !== "1" ? loadLocal<unknown>(KEYS.draft, null) : null;
@@ -109,7 +110,8 @@ function titleCase(s: string) {
 export default function Editor() {
   const router = useRouter();
   const toast = useToast();
-  const [start] = useState(readStart);
+  const searchParams = useSearchParams();
+  const [start] = useState(() => readStart(searchParams));
   const history = useHistory(() => start.draft?.grid ?? createGrid(DEFAULT_WIDTH, DEFAULT_HEIGHT, "white"));
   const { grid, commit } = history;
   const W = grid[0].length;

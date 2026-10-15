@@ -1,7 +1,7 @@
 "use client";
 
 import { FlipHorizontal2, GitFork, Maximize, Minus, Paintbrush, PenLine, Plus, Redo2, RefreshCw, RotateCcw, Ruler, Send, Shapes, Sparkles, Undo2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_COLORS } from "@/lib/constants";
 import { downloadNormalPng } from "@/lib/exportNormalPng";
@@ -88,12 +88,16 @@ function stringColors(p: NormalPattern) {
 export default function NormalEditor() {
   const toast = useToast();
   const router = useRouter();
-  const [remixId] = useState(() => new URLSearchParams(window.location.search).get("remix"));
-  const [start] = useState(() => (remixId || new URLSearchParams(window.location.search).get("new") === "1" ? null : readDraft()));
+  // Next's search params, not window.location: on a client-side navigation the page renders before
+  // the address bar changes, so window.location would still show the previous page.
+  const searchParams = useSearchParams();
+  const [remixId] = useState(() => searchParams.get("remix"));
+  const [isNew] = useState(() => searchParams.get("new") === "1");
+  const [start] = useState(() => (remixId || isNew ? null : readDraft()));
   // Drop ?new=1 so a refresh doesn't throw the new work away. (In an effect: the router can't change during render.)
   useEffect(() => {
-    if (window.location.search.includes("new=1")) window.history.replaceState(null, "", withBase("/create/normal"));
-  }, []);
+    if (isNew) window.history.replaceState(null, "", withBase("/create/normal"));
+  }, [isNew]);
   const history = useHistory<NormalPattern>(() => start?.pattern ?? buildStyle("chevron", DEFAULT_COLORS, 8));
   const { grid: pattern, commit } = history;
   const sim = useMemo(() => simulate(pattern), [pattern]);
