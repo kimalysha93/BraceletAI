@@ -4,6 +4,8 @@ Design friendship bracelet patterns without the guesswork. Describe a bracelet i
 
 This is a demo prototype for a class pitch. No accounts, payments or paid APIs.
 
+Check out the pitch deck here: [AI_Bracelet_Builder_Pitch.pdf](https://github.com/kimalysha93/BraceletAI/blob/f3013eb0eaf71002d2a2c897cb4bcfeb9e8100a7/AI_Bracelet_Builder_Pitch.pdf)
+
 ## Try the demo prototype in GitHub Pages
 https://kimalysha93.github.io/BraceletAI/
 
