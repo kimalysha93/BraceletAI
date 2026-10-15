@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Download,
   GitFork,
   Heart,
   ImageIcon,
@@ -21,20 +20,36 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, MAX_COLORS, MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH } from "@/lib/constants";
 import { downloadPatternPng } from "@/lib/exportPng";
-import { createGrid, floodFill, mostCommonColor, replaceColor, resizeGrid, setCells, usedColorIds, type Grid } from "@/lib/grid";
+import {
+  copyRect,
+  createGrid,
+  floodFill,
+  inRect,
+  mostCommonColor,
+  pastePatch,
+  rectCells,
+  rectFrom,
+  replaceColor,
+  resizeGrid,
+  setCells,
+  usedColorIds,
+  type Grid,
+  type Rect,
+} from "@/lib/grid";
 import { fetchLibrary, publishPattern, PublishError } from "@/lib/libraryClient";
 import { MOTIFS, type MotifId } from "@/lib/motifs";
 import { getThread, isValidThread } from "@/lib/palette";
 import { buildFromRecipe, insertMotif, type Recipe } from "@/lib/recipe";
 import { KEYS, loadLocal, saveLocal } from "@/lib/storage";
 import type { PatternSource } from "@/lib/types";
+import ExportButton from "../ExportButton";
 import KnotGrid, { type Orientation } from "../KnotGrid";
 import Legend from "../Legend";
 import StringCalculator, { StringSummary } from "../StringCalculator";
 import Modal from "../ui/Modal";
 import { useToast } from "../ui/Toast";
 import DescribePanel from "./DescribePanel";
-import LeftRail, { type Tool } from "./LeftRail";
+import LeftRail, { type SelectMode, type Tool } from "./LeftRail";
 import MotifPanel from "./MotifPanel";
 import PhotoPanel from "./PhotoPanel";
 import PublishModal, { type PublishFields } from "./PublishModal";
@@ -44,6 +59,9 @@ import { useHistory } from "./useHistory";
 type Tab = "describe" | "motifs" | "text" | "photo" | "strings";
 type Meta = { title: string; source: PatternSource; remixedFrom?: string; remixTitle?: string; tags: string[] };
 type Draft = Meta & { grid: Grid };
+type SelectDrag =
+  | { kind: "select"; r: number; c: number; moved: boolean }
+  | { kind: "move"; r: number; c: number; from: Rect; orig: Grid; base: Grid; patch: Grid };
 
 const TABS: { id: Tab; label: string; icon: typeof Sparkles }[] = [
   { id: "describe", label: "Describe", icon: Sparkles },
@@ -113,6 +131,11 @@ export default function Editor() {
   const [clearOpen, setClearOpen] = useState(false);
   const centerRef = useRef<HTMLDivElement>(null);
   const strokeColor = useRef<string | null>(null);
+  const [selection, setSelection] = useState<Rect | null>(null);
+  const [selectMode, setSelectMode] = useState<SelectMode>("move");
+  const selectDrag = useRef<SelectDrag | null>(null);
+  // Only show a selection that still fits (the pattern may have been resized or replaced).
+  const sel = tool === "select" && selection && selection.r1 < H && selection.c1 < W ? selection : null;
 
   // ---------- loading patterns ----------
 
@@ -129,6 +152,7 @@ export default function Editor() {
 
   const loadPattern = useCallback(
     (g: Grid, next: Partial<Meta>, opts: { fresh?: boolean } = {}) => {
+      setSelection(null);
       if (opts.fresh) history.reset(g);
       else commit(g);
       setBg(mostCommonColor(g));
@@ -191,7 +215,62 @@ export default function Editor() {
 
   const cellsFor = (r: number, c: number): [number, number][] => (mirror ? [[r, c], [r, W - 1 - c]] : [[r, c]]);
 
-  const onStrokeStart = (r: number, c: number) => {
+  // ---------- selecting and moving ----------
+
+  const onSelectStart = (r: number, c: number, alt: boolean) => {
+    if (sel && inRect(sel, r, c)) {
+      // Lift the knots; a move leaves the background colour behind, a copy leaves the original.
+      const copy = (selectMode === "copy") !== alt;
+      const patch = copyRect(grid, sel);
+      const base = copy ? grid : setCells(grid, rectCells(sel), bg);
+      selectDrag.current = { kind: "move", r, c, from: sel, orig: grid, base, patch };
+      history.beginStroke();
+      return;
+    }
+    selectDrag.current = { kind: "select", r, c, moved: false };
+    setSelection(rectFrom(r, c, r, c));
+  };
+
+  const onSelectMove = (r: number, c: number) => {
+    const d = selectDrag.current;
+    if (!d) return;
+    if (d.kind === "select") {
+      d.moved = true;
+      setSelection(rectFrom(d.r, d.c, r, c));
+      return;
+    }
+    // Keep the whole box on the pattern so nothing gets cut off.
+    const dr = Math.max(-d.from.r0, Math.min(H - 1 - d.from.r1, r - d.r));
+    const dc = Math.max(-d.from.c0, Math.min(W - 1 - d.from.c1, c - d.c));
+    const to = { r0: d.from.r0 + dr, c0: d.from.c0 + dc, r1: d.from.r1 + dr, c1: d.from.c1 + dc };
+    history.strokeUpdate(() => (dr === 0 && dc === 0 ? d.orig : pastePatch(d.base, d.patch, to.r0, to.c0)));
+    setSelection(to);
+  };
+
+  const onSelectEnd = () => {
+    const d = selectDrag.current;
+    selectDrag.current = null;
+    if (!d) return;
+    if (d.kind === "move") history.endStroke();
+    else if (!d.moved) setSelection(null); // a plain click deselects
+  };
+
+  // Undo/redo can put knots back somewhere else, so drop the box rather than outline the wrong spot.
+  const undo = () => {
+    setSelection(null);
+    history.undo();
+  };
+  const redo = () => {
+    setSelection(null);
+    history.redo();
+  };
+
+  const clearSelection = () => {
+    if (sel) commit((g) => setCells(g, rectCells(sel), bg));
+  };
+
+  const onStrokeStart = (r: number, c: number, mods: { alt: boolean }) => {
+    if (tool === "select") return onSelectStart(r, c, mods.alt);
     if (tool === "picker") {
       setColor(grid[r][c]);
       setTool("pencil");
@@ -214,12 +293,14 @@ export default function Editor() {
   };
 
   const onStrokeMove = (r: number, c: number) => {
+    if (tool === "select") return onSelectMove(r, c);
     const col = strokeColor.current;
     if (!col) return;
     history.strokeUpdate((g) => setCells(g, cellsFor(r, c), col));
   };
 
   const onStrokeEnd = () => {
+    if (tool === "select") return onSelectEnd();
     if (!strokeColor.current) return;
     strokeColor.current = null;
     history.endStroke();
@@ -282,10 +363,10 @@ export default function Editor() {
     loadPattern(g, { title: "Photo bracelet", source: "photo", tags: ["photo"] });
   };
 
-  const exportPng = async () => {
+  const exportPng = async (mirrored: boolean) => {
     try {
-      await downloadPatternPng(grid, meta.title);
-      toast("PNG downloaded.", "success");
+      await downloadPatternPng(grid, meta.title, undefined, { mirrored });
+      toast(mirrored ? "Mirrored PNG downloaded." : "PNG downloaded.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't export.", "warn");
     }
@@ -334,13 +415,18 @@ export default function Editor() {
       const k = e.key.toLowerCase();
       if (mod && k === "z") {
         e.preventDefault();
-        if (e.shiftKey) history.redo();
-        else history.undo();
+        if (e.shiftKey) redo();
+        else undo();
       } else if (mod && k === "y") {
         e.preventDefault();
-        history.redo();
+        redo();
+      } else if (sel && (k === "escape" || k === "delete" || k === "backspace")) {
+        e.preventDefault();
+        if (k === "escape") setSelection(null);
+        else clearSelection();
       } else if (!mod) {
         if (k === "p") setTool("pencil");
+        else if (k === "s") setTool("select");
         else if (k === "f") setTool("fill");
         else if (k === "e") setTool("eraser");
         else if (k === "i") setTool("picker");
@@ -378,10 +464,10 @@ export default function Editor() {
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <SizeFields key={`${W}x${H}`} w={W} h={H} onResize={resize} />
           <div className="mx-1 h-6 w-px bg-line" />
-          <button className="icon-btn" onClick={history.undo} disabled={!history.canUndo} title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">
+          <button className="icon-btn" onClick={undo} disabled={!history.canUndo} title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">
             <Undo2 className="h-4 w-4" />
           </button>
-          <button className="icon-btn" onClick={history.redo} disabled={!history.canRedo} title="Redo (Shift+Ctrl/Cmd+Z)" aria-label="Redo">
+          <button className="icon-btn" onClick={redo} disabled={!history.canRedo} title="Redo (Shift+Ctrl/Cmd+Z)" aria-label="Redo">
             <Redo2 className="h-4 w-4" />
           </button>
           <div className="mx-1 h-6 w-px bg-line" />
@@ -414,9 +500,7 @@ export default function Editor() {
           <button className="icon-btn" onClick={() => setClearOpen(true)} title="Clear pattern" aria-label="Clear pattern">
             <Trash2 className="h-4 w-4" />
           </button>
-          <button className="btn-soft" onClick={exportPng}>
-            <Download className="h-4 w-4" /> PNG
-          </button>
+          <ExportButton onExport={exportPng} />
           <button className="btn-primary" onClick={() => setPublishOpen(true)}>
             <Send className="h-4 w-4" /> Publish
           </button>
@@ -431,6 +515,9 @@ export default function Editor() {
             setTool={setTool}
             mirror={mirror}
             setMirror={setMirror}
+            selectMode={selectMode}
+            setSelectMode={setSelectMode}
+            hasSelection={!!sel}
             color={color}
             setColor={setColor}
             bg={bg}
@@ -460,7 +547,9 @@ export default function Editor() {
                   cell={cell}
                   orientation={orientation}
                   interactive
-                  mirrorLine={mirror}
+                  mirrorLine={mirror && tool !== "select"}
+                  selection={sel}
+                  clampDrag={tool === "select"}
                   onStrokeStart={onStrokeStart}
                   onStrokeMove={onStrokeMove}
                   onStrokeEnd={onStrokeEnd}

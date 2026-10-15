@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useId, useRef, useState, type PointerEvent } from "react";
-import type { Grid } from "@/lib/grid";
+import { inRect, type Grid, type Rect } from "@/lib/grid";
 import { getThread } from "@/lib/palette";
 
 export type Orientation = "vertical" | "horizontal";
@@ -13,7 +13,11 @@ type Props = {
   guides?: boolean;
   mirrorLine?: boolean;
   interactive?: boolean;
-  onStrokeStart?: (r: number, c: number) => void;
+  /** Dashed outline drawn around a selected rectangle of knots. */
+  selection?: Rect | null;
+  /** Keep reporting the nearest edge cell when a drag leaves the pattern (used for moving selections). */
+  clampDrag?: boolean;
+  onStrokeStart?: (r: number, c: number, mods: { alt: boolean }) => void;
   onStrokeMove?: (r: number, c: number) => void;
   onStrokeEnd?: () => void;
 };
@@ -88,6 +92,8 @@ export default function KnotGrid({
   guides = true,
   mirrorLine = false,
   interactive = false,
+  selection = null,
+  clampDrag = false,
   onStrokeStart,
   onStrokeMove,
   onStrokeEnd,
@@ -99,7 +105,7 @@ export default function KnotGrid({
   const [hover, setHover] = useState<[number, number] | null>(null);
   const L = layout(grid, cell, orientation, guides);
 
-  const cellAt = (e: PointerEvent<SVGSVGElement>): [number, number] | null => {
+  const cellAt = (e: PointerEvent<SVGSVGElement>, clamp = false): [number, number] | null => {
     const rect = svgRef.current!.getBoundingClientRect();
     const scale = rect.width / L.width;
     const x = (e.clientX - rect.left) / scale - L.left;
@@ -113,6 +119,10 @@ export default function KnotGrid({
       r = Math.floor(x / cell);
       c = L.w - 1 - Math.floor(y / cell);
     }
+    if (clamp) {
+      r = Math.max(0, Math.min(L.h - 1, r));
+      c = Math.max(0, Math.min(L.w - 1, c));
+    }
     if (r < 0 || r >= L.h || c < 0 || c >= L.w) return null;
     return [r, c];
   };
@@ -125,16 +135,18 @@ export default function KnotGrid({
     svgRef.current!.setPointerCapture(e.pointerId);
     drawing.current = true;
     last.current = hit.join(",");
-    onStrokeStart?.(hit[0], hit[1]);
+    onStrokeStart?.(hit[0], hit[1], { alt: e.altKey });
   };
   const handleMove = (e: PointerEvent<SVGSVGElement>) => {
     if (!interactive) return;
     const hit = cellAt(e);
     const key = hit?.join(",") ?? "";
     if (key !== (hover?.join(",") ?? "")) setHover(hit);
-    if (drawing.current && hit && key !== last.current) {
-      last.current = key;
-      onStrokeMove?.(hit[0], hit[1]);
+    const dragHit = drawing.current && clampDrag ? cellAt(e, true) : hit;
+    const dragKey = dragHit?.join(",") ?? "";
+    if (drawing.current && dragHit && dragKey !== last.current) {
+      last.current = dragKey;
+      onStrokeMove?.(dragHit[0], dragHit[1]);
     }
   };
   const handleUp = () => {
@@ -149,6 +161,12 @@ export default function KnotGrid({
       ? { x: L.left + hover[1] * cell, y: L.top + hover[0] * cell }
       : { x: L.left + hover[0] * cell, y: L.top + (L.w - 1 - hover[1]) * cell }
     : null;
+  const selRect = selection
+    ? vertical
+      ? { x: L.left + selection.c0 * cell, y: L.top + selection.r0 * cell, w: (selection.c1 - selection.c0 + 1) * cell, h: (selection.r1 - selection.r0 + 1) * cell }
+      : { x: L.left + selection.r0 * cell, y: L.top + (L.w - 1 - selection.c1) * cell, w: (selection.r1 - selection.r0 + 1) * cell, h: (selection.c1 - selection.c0 + 1) * cell }
+    : null;
+  const overSelection = !!(selection && hover && inRect(selection, hover[0], hover[1]));
 
   return (
     <svg
@@ -156,7 +174,7 @@ export default function KnotGrid({
       width={L.width}
       height={L.height}
       viewBox={`0 0 ${L.width} ${L.height}`}
-      className={`block max-w-none touch-none select-none ${interactive ? "cursor-crosshair" : ""}`}
+      className={`block max-w-none touch-none select-none ${interactive ? (overSelection ? "cursor-move" : "cursor-crosshair") : ""}`}
       onPointerDown={handleDown}
       onPointerMove={handleMove}
       onPointerUp={handleUp}
@@ -276,7 +294,16 @@ export default function KnotGrid({
           ) : null,
         )}
 
-      {interactive && hoverRect && (
+      {selRect && (
+        <g pointerEvents="none">
+          <rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h} rx={4} fill="#EC5F99" fillOpacity={0.12} stroke="#fff" strokeWidth={2.5} />
+          <rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h} rx={4} fill="none" stroke="#C93D7A" strokeWidth={2} strokeDasharray="5 4">
+            <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="0.9s" repeatCount="indefinite" />
+          </rect>
+        </g>
+      )}
+
+      {interactive && hoverRect && !overSelection && (
         <rect
           x={hoverRect.x + 0.5}
           y={hoverRect.y + 0.5}

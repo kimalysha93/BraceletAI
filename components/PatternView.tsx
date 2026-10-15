@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, Download, GitFork, Minus, Plus, Printer, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarDays, GitFork, Minus, Plus, Printer, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { APP_NAME } from "@/lib/constants";
 import { downloadPatternPng } from "@/lib/exportPng";
 import { useLibrary } from "@/lib/libraryClient";
 import type { PatternSource } from "@/lib/types";
+import ExportButton from "./ExportButton";
 import KnotGrid, { type Orientation } from "./KnotGrid";
 import Legend from "./Legend";
 import StringCalculator from "./StringCalculator";
@@ -51,10 +52,10 @@ export default function PatternView({ id }: { id: string }) {
   const original = p.remixedFrom ? patterns.find((x) => x.id === p.remixedFrom) : undefined;
   const remixes = patterns.filter((x) => x.remixedFrom === p.id);
 
-  const exportPng = async () => {
+  const exportPng = async (mirrored: boolean) => {
     try {
-      await downloadPatternPng(p.grid, p.title, p.author);
-      toast("PNG downloaded.", "success");
+      await downloadPatternPng(p.grid, p.title, p.author, { mirrored });
+      toast(mirrored ? "Mirrored PNG downloaded." : "PNG downloaded.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't export.", "warn");
     }
@@ -80,9 +81,7 @@ export default function PatternView({ id }: { id: string }) {
                 <Link href={`/create?remix=${encodeURIComponent(p.id)}`} className="btn-primary">
                   <GitFork className="h-4 w-4" /> Remix
                 </Link>
-                <button className="btn-soft" onClick={exportPng}>
-                  <Download className="h-4 w-4" /> PNG
-                </button>
+                <ExportButton onExport={exportPng} />
                 <button className="btn-soft" onClick={() => window.print()}>
                   <Printer className="h-4 w-4" /> Print
                 </button>

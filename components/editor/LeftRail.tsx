@@ -1,18 +1,20 @@
 "use client";
 
-import { ArrowDown, Eraser, FlipHorizontal2, PaintBucket, Pencil, Pipette } from "lucide-react";
+import { ArrowDown, Copy, Eraser, FlipHorizontal2, Move, PaintBucket, Pencil, Pipette, SquareDashed } from "lucide-react";
 import { useState } from "react";
 import { MAX_COLORS } from "@/lib/constants";
 import { getThread, THREADS } from "@/lib/palette";
 import ColorDropdown from "../ui/ColorDropdown";
 
-export type Tool = "pencil" | "fill" | "eraser" | "picker";
+export type Tool = "pencil" | "fill" | "eraser" | "picker" | "select";
+export type SelectMode = "move" | "copy";
 
 const TOOLS: { id: Tool; label: string; key: string; icon: typeof Pencil }[] = [
   { id: "pencil", label: "Pencil", key: "P", icon: Pencil },
   { id: "fill", label: "Fill", key: "F", icon: PaintBucket },
   { id: "eraser", label: "Eraser", key: "E", icon: Eraser },
   { id: "picker", label: "Picker", key: "I", icon: Pipette },
+  { id: "select", label: "Select", key: "S", icon: SquareDashed },
 ];
 
 export default function LeftRail({
@@ -20,6 +22,9 @@ export default function LeftRail({
   setTool,
   mirror,
   setMirror,
+  selectMode,
+  setSelectMode,
+  hasSelection,
   color,
   setColor,
   bg,
@@ -31,6 +36,9 @@ export default function LeftRail({
   setTool: (t: Tool) => void;
   mirror: boolean;
   setMirror: (m: boolean) => void;
+  selectMode: SelectMode;
+  setSelectMode: (m: SelectMode) => void;
+  hasSelection: boolean;
   color: string;
   setColor: (id: string) => void;
   bg: string;
@@ -46,13 +54,13 @@ export default function LeftRail({
     <div className="space-y-5">
       <section>
         <h3 className="label">Tools</h3>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-5 gap-1">
           {TOOLS.map(({ id, label, key, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTool(id)}
               title={`${label} (${key})`}
-              className={`flex flex-col items-center gap-0.5 rounded-2xl border py-2 text-[11px] font-bold transition ${tool === id ? "border-berry bg-blush text-berry-dark" : "border-line bg-white text-muted hover:text-ink"}`}
+              className={`flex flex-col items-center gap-0.5 rounded-2xl border py-2 text-[10.5px] font-bold transition ${tool === id ? "border-berry bg-blush text-berry-dark" : "border-line bg-white text-muted hover:text-ink"}`}
             >
               <Icon className="h-[18px] w-[18px]" />
               {label}
@@ -70,6 +78,36 @@ export default function LeftRail({
             <span className={`block h-4 w-4 rounded-full bg-white shadow transition ${mirror ? "translate-x-4" : ""}`} />
           </span>
         </button>
+        {tool === "select" && (
+          <div className="mt-1.5 rounded-2xl border border-line bg-white p-2.5">
+            <div className="flex rounded-full border border-line bg-cream p-0.5">
+              {(
+                [
+                  ["move", "Move", Move],
+                  ["copy", "Copy", Copy],
+                ] as const
+              ).map(([m, label, Icon]) => (
+                <button
+                  key={m}
+                  onClick={() => setSelectMode(m)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-1 text-xs font-bold transition ${selectMode === m ? "bg-berry text-white" : "text-muted hover:text-ink"}`}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs leading-snug text-muted">
+              {hasSelection ? (
+                <>
+                  Drag inside the box to {selectMode === "move" ? "move" : "copy"} it. Hold <b>Alt/Option</b> to {selectMode === "move" ? "copy" : "move"} instead.
+                  <span className="mt-1 block text-faint">Delete clears it · Esc deselects</span>
+                </>
+              ) : (
+                "Drag over the pattern to select a rectangle of knots."
+              )}
+            </p>
+          </div>
+        )}
       </section>
 
       <section>

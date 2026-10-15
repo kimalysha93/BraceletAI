@@ -1,7 +1,7 @@
 "use client";
 
 import { APP_NAME } from "./constants";
-import { countColors, type Grid } from "./grid";
+import { countColors, mirrorGrid, type Grid } from "./grid";
 import { getThread } from "./palette";
 
 const FONT = "'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif";
@@ -11,7 +11,7 @@ function esc(s: string) {
 }
 
 /** A self-contained SVG of the pattern with legend, row numbers and direction arrows. */
-export function patternToSvg(grid: Grid, opts: { title: string; author?: string; cell?: number }) {
+export function patternToSvg(grid: Grid, opts: { title: string; author?: string; cell?: number; mirrored?: boolean }) {
   const cell = opts.cell ?? 22;
   const w = grid[0].length;
   const h = grid.length;
@@ -52,7 +52,7 @@ export function patternToSvg(grid: Grid, opts: { title: string; author?: string;
     `<defs><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient></defs>`,
     `<rect width="100%" height="100%" fill="#FFF9F5"/>`,
     `<text x="${pad}" y="${pad + 26}" font-family="${FONT}" font-size="24" font-weight="800" fill="#3B2F3A">${esc(opts.title)}</text>`,
-    `<text x="${pad}" y="${pad + 50}" font-family="${FONT}" font-size="14" fill="#8A7A86">${esc(`${opts.author ? `by ${opts.author} · ` : ""}${w} × ${h} knots · ${counts.length} colours`)}</text>`,
+    `<text x="${pad}" y="${pad + 50}" font-family="${FONT}" font-size="14" fill="#8A7A86">${esc(`${opts.author ? `by ${opts.author} · ` : ""}${w} × ${h} knots · ${counts.length} colours${opts.mirrored ? " · mirrored" : ""}`)}</text>`,
   );
   for (const c of chips) {
     const x = pad + c.x;
@@ -93,8 +93,9 @@ export function patternToSvg(grid: Grid, opts: { title: string; author?: string;
   return { svg: parts.join(""), width: totalW, height: totalH };
 }
 
-export async function downloadPatternPng(grid: Grid, title: string, author?: string) {
-  const { svg, width, height } = patternToSvg(grid, { title, author });
+export async function downloadPatternPng(grid: Grid, title: string, author?: string, opts: { mirrored?: boolean } = {}) {
+  const mirrored = !!opts.mirrored;
+  const { svg, width, height } = patternToSvg(mirrored ? mirrorGrid(grid) : grid, { title, author, mirrored });
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const img = new Image();
@@ -115,7 +116,8 @@ export async function downloadPatternPng(grid: Grid, title: string, author?: str
     if (!blob) throw new Error("Couldn't create the PNG.");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bracelet"}.png`;
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bracelet";
+    a.download = `${slug}${mirrored ? "-mirrored" : ""}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();

@@ -81,6 +81,41 @@ export function resizeGrid(grid: Grid, width: number, height: number, bg: string
   );
 }
 
+/** Flip left ↔ right (each row reversed). */
+export function mirrorGrid(grid: Grid): Grid {
+  return grid.map((row) => row.slice().reverse());
+}
+
+// ---------- rectangular selections ----------
+
+/** Inclusive cell rectangle. */
+export type Rect = { r0: number; c0: number; r1: number; c1: number };
+
+export function rectFrom(r: number, c: number, r2: number, c2: number): Rect {
+  return { r0: Math.min(r, r2), c0: Math.min(c, c2), r1: Math.max(r, r2), c1: Math.max(c, c2) };
+}
+
+export function inRect(rect: Rect, r: number, c: number) {
+  return r >= rect.r0 && r <= rect.r1 && c >= rect.c0 && c <= rect.c1;
+}
+
+export function rectCells(rect: Rect): [number, number][] {
+  const out: [number, number][] = [];
+  for (let r = rect.r0; r <= rect.r1; r++) for (let c = rect.c0; c <= rect.c1; c++) out.push([r, c]);
+  return out;
+}
+
+export function copyRect(grid: Grid, rect: Rect): Grid {
+  return grid.slice(rect.r0, rect.r1 + 1).map((row) => row.slice(rect.c0, rect.c1 + 1));
+}
+
+/** Stamp a patch with its top-left at (r, c); parts falling off the pattern are dropped. */
+export function pastePatch(grid: Grid, patch: Grid, r: number, c: number): Grid {
+  let next = grid;
+  patch.forEach((row, dr) => row.forEach((id, dc) => (next = setCells(next, [[r + dr, c + dc]], id))));
+  return next;
+}
+
 export function isValidGrid(grid: unknown, width: number, height: number): grid is Grid {
   return (
     Array.isArray(grid) &&
