@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SEED_PATTERNS } from "./seed";
+import { LIVE_PUBLISH_OFF, LIVE_SITE } from "./site";
 import { KEYS, loadLocal, saveLocal } from "./storage";
 import type { LibraryPattern } from "./types";
 import { makePatternId, validatePattern } from "./validatePattern";
@@ -20,6 +21,8 @@ function merge(server: LibraryPattern[], local: LibraryPattern[]) {
 }
 
 export async function fetchLibrary(): Promise<LibraryPattern[]> {
+  // The live site has no server: the library is the built-in examples.
+  if (LIVE_SITE) return merge(SEED_PATTERNS, []);
   let server: LibraryPattern[] = SEED_PATTERNS;
   try {
     const res = await fetch("/api/patterns", { cache: "no-store" });
@@ -35,6 +38,8 @@ type WithoutServerFields<T> = T extends unknown ? Omit<T, "id" | "createdAt" | "
 export type PublishInput = WithoutServerFields<LibraryPattern>;
 
 export async function publishPattern(input: PublishInput): Promise<{ pattern: LibraryPattern; savedTo: "library" | "browser" }> {
+  // Belt and braces: the Publish buttons are already disabled on the live site.
+  if (LIVE_SITE) throw new PublishError(LIVE_PUBLISH_OFF);
   try {
     const res = await fetch("/api/patterns", {
       method: "POST",

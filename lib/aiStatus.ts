@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import type { AiStatus } from "./apiTypes";
+import { LIVE_SITE } from "./site";
 
 // One shared poller for the header dot and the Describe panel.
 let status: AiStatus | null = null;
@@ -16,6 +17,11 @@ function emit(next: AiStatus) {
 const OFFLINE: AiStatus = { connected: false, modelAvailable: false, model: "", warm: false };
 
 export async function refreshAiStatus(method: "GET" | "POST" = "GET") {
+  // No server on the live site, so don't ask.
+  if (LIVE_SITE) {
+    emit(OFFLINE);
+    return status;
+  }
   try {
     const res = await fetch("/api/status", { method, cache: "no-store" });
     emit(res.ok ? ((await res.json()) as AiStatus) : OFFLINE);
@@ -27,7 +33,7 @@ export async function refreshAiStatus(method: "GET" | "POST" = "GET") {
 
 function subscribe(cb: () => void) {
   listeners.add(cb);
-  if (!timer) timer = setInterval(() => void refreshAiStatus(), 20_000);
+  if (!timer && !LIVE_SITE) timer = setInterval(() => void refreshAiStatus(), 20_000);
   return () => {
     listeners.delete(cb);
     if (!listeners.size && timer) {

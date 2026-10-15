@@ -39,6 +39,7 @@ import {
 import { fetchLibrary, publishPattern, PublishError } from "@/lib/libraryClient";
 import { MOTIFS, type MotifId } from "@/lib/motifs";
 import { getThread, isValidThread } from "@/lib/palette";
+import { LIVE_PUBLISH_OFF, LIVE_SITE, patternHref, withBase } from "@/lib/site";
 import { buildFromRecipe, insertMotif, type Recipe } from "@/lib/recipe";
 import { KEYS, loadLocal, saveLocal } from "@/lib/storage";
 import { isTraditional, type PatternSource } from "@/lib/types";
@@ -196,7 +197,7 @@ export default function Editor() {
         </>,
         "info",
       );
-      window.history.replaceState(null, "", "/create");
+      window.history.replaceState(null, "", withBase("/create"));
     });
     return () => {
       alive = false;
@@ -395,7 +396,7 @@ export default function Editor() {
       setPublishOpen(false);
       setMeta((m) => ({ ...m, title: f.title, tags: f.tags }));
       toast(savedTo === "library" ? "Published to the library!" : "Published! (Saved in this browser on this demo site.)", "success");
-      router.push(`/pattern/${pattern.id}`);
+      router.push(patternHref(pattern.id));
     } catch (e) {
       toast(e instanceof PublishError ? e.message : "Couldn't publish right now.", "warn");
     }
@@ -452,7 +453,7 @@ export default function Editor() {
   const author = typeof window !== "undefined" ? loadLocal<string>(KEYS.author, "") : "";
 
   return (
-    <div className="flex flex-col lg:h-[calc(100dvh-3.5rem)]">
+    <div className="flex flex-col lg:h-[calc(100dvh-3.5rem-var(--banner-h,0px))]">
       {/* ---------- top bar ---------- */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line bg-white/70 px-4 py-2.5 backdrop-blur">
         <div className="flex min-w-0 items-center gap-2">
@@ -509,9 +510,12 @@ export default function Editor() {
             <Trash2 className="h-4 w-4" />
           </button>
           <ExportButton onExport={exportPng} />
-          <button className="btn-primary" onClick={() => setPublishOpen(true)}>
-            <Send className="h-4 w-4" /> Publish
-          </button>
+          {/* The wrapper carries the tooltip: disabled buttons don't show one. */}
+          <span title={LIVE_SITE ? LIVE_PUBLISH_OFF : undefined}>
+            <button className="btn-primary" onClick={() => setPublishOpen(true)} disabled={LIVE_SITE}>
+              <Send className="h-4 w-4" /> Publish
+            </button>
+          </span>
         </div>
       </div>
 

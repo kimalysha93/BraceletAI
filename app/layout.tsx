@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 import Header from "@/components/Header";
+import LiveBanner from "@/components/LiveBanner";
 import { ToastProvider } from "@/components/ui/Toast";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import "./globals.css";
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <ToastProvider>
+          <LiveBanner />
           <Header />
           <div className="flex flex-1 flex-col">{children}</div>
         </ToastProvider>

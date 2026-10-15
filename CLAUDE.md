@@ -7,6 +7,7 @@ Next.js 16 (App Router, Turbopack) + TypeScript + Tailwind v4. Spec: `bracelet-b
 ## Commands
 - `npm install` then `npm run dev` → app at **http://localhost:3000** (this is the URL for browser testing)
 - `npm run build` (must pass), `npm run lint`
+- `npm run build:live` builds the static GitHub Pages copy into `out/` (see `docs/live-site.md`).
 - Optional local AI: `ollama pull llama3.2:3b` and `ollama serve` (port 11434). Without it the app runs in offline mode.
 
 ## Layout
@@ -15,6 +16,12 @@ Next.js 16 (App Router, Turbopack) + TypeScript + Tailwind v4. Spec: `bracelet-b
 - `app/api/*` route handlers: `patterns` (GET/POST), `generate` (AI recipe with fallback), `generate-normal` (traditional recipe with fallback), `status` (Ollama health + warm-up), `feedback`.
 - `components/editor/*` the `/create` alpha editor (client-only, loaded with `ssr: false`).
 - Traditional (diagonal knot) patterns: `/create/normal`, `components/normal/*`. Logic in `lib/normal.ts` (knot simulation, classic styles, mirroring), `lib/normalRecipe.ts` (AI recipe + offline parser), `lib/normalLayout.ts` (geometry shared by the diagram and PNG export), `lib/normalStrings.ts`. Library entries are a union (`LibraryPattern` in `lib/types.ts`): `kind: "normal"` holds `normal` (strings + knots); entries with no kind are alpha.
+
+## Live site (GitHub Pages)
+- One codebase; `LIVE_SITE` in `lib/site.ts` (env `NEXT_PUBLIC_LIVE_SITE=1`) turns on the banner and turns off the AI, publishing, server requests and feedback. Don't fork the code per branch.
+- `live` branch = what's deployed (`.github/workflows/deploy-pages.yml`). Work on `main`, then merge main into live.
+- Live site has basePath `/BraceletAI`: Link/router add it; raw paths (e.g. `history.replaceState`) need `withBase()`.
+- Pattern pages are `/pattern?id=…` (`patternHref()`), so they work as static files.
 
 ## Rules
 - The AI only returns a recipe; `lib/recipe.ts` builds the knots. Keep it that way.

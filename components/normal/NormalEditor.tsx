@@ -30,6 +30,7 @@ import {
 import { buildFromNormalRecipe, parseNormalDescription, type NormalRecipe } from "@/lib/normalRecipe";
 import { fetchLibrary, publishPattern, PublishError } from "@/lib/libraryClient";
 import { getThread, isValidThread, THREADS } from "@/lib/palette";
+import { LIVE_PUBLISH_OFF, LIVE_SITE, patternHref, withBase } from "@/lib/site";
 import { KEYS, loadLocal, saveLocal } from "@/lib/storage";
 import { isTraditional, type PatternSource } from "@/lib/types";
 import DescribePanel from "../editor/DescribePanel";
@@ -91,7 +92,7 @@ export default function NormalEditor() {
   const [start] = useState(() => (remixId || new URLSearchParams(window.location.search).get("new") === "1" ? null : readDraft()));
   // Drop ?new=1 so a refresh doesn't throw the new work away. (In an effect: the router can't change during render.)
   useEffect(() => {
-    if (window.location.search.includes("new=1")) window.history.replaceState(null, "", "/create/normal");
+    if (window.location.search.includes("new=1")) window.history.replaceState(null, "", withBase("/create/normal"));
   }, []);
   const history = useHistory<NormalPattern>(() => start?.pattern ?? buildStyle("chevron", DEFAULT_COLORS, 8));
   const { grid: pattern, commit } = history;
@@ -156,7 +157,7 @@ export default function NormalEditor() {
         </>,
         "info",
       );
-      window.history.replaceState(null, "", "/create/normal");
+      window.history.replaceState(null, "", withBase("/create/normal"));
     });
     return () => {
       alive = false;
@@ -299,7 +300,7 @@ export default function NormalEditor() {
       setTitle(f.title);
       setMeta((m) => ({ ...m, tags: f.tags }));
       toast(savedTo === "library" ? "Published to the library!" : "Published! (Saved in this browser on this demo site.)", "success");
-      router.push(`/pattern/${saved.id}`);
+      router.push(patternHref(saved.id));
     } catch (e) {
       toast(e instanceof PublishError ? e.message : "Couldn't publish right now.", "warn");
     }
@@ -345,7 +346,7 @@ export default function NormalEditor() {
     `flex items-center gap-2 rounded-2xl border px-2.5 py-2 text-left text-sm font-bold transition ${active ? "border-berry bg-blush text-berry-dark" : "border-line bg-white text-muted hover:text-ink"}`;
 
   return (
-    <div className="flex flex-col lg:h-[calc(100dvh-3.5rem)]">
+    <div className="flex flex-col lg:h-[calc(100dvh-3.5rem-var(--banner-h,0px))]">
       {/* ---------- top bar ---------- */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line bg-white/70 px-4 py-2.5 backdrop-blur">
         <div className="flex min-w-0 items-center gap-2">
@@ -386,9 +387,12 @@ export default function NormalEditor() {
             <RotateCcw className="h-4 w-4" />
           </button>
           <ExportButton onExport={exportPng} />
-          <button className="btn-primary" onClick={() => setPublishOpen(true)}>
-            <Send className="h-4 w-4" /> Publish
-          </button>
+          {/* The wrapper carries the tooltip: disabled buttons don't show one. */}
+          <span title={LIVE_SITE ? LIVE_PUBLISH_OFF : undefined}>
+            <button className="btn-primary" onClick={() => setPublishOpen(true)} disabled={LIVE_SITE}>
+              <Send className="h-4 w-4" /> Publish
+            </button>
+          </span>
         </div>
       </div>
 

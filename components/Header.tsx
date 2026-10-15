@@ -5,14 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { aiIsReady, useAiStatus } from "@/lib/aiStatus";
 import { APP_NAME } from "@/lib/constants";
+import { LIVE_SITE } from "@/lib/site";
 import Logo from "./Logo";
 
 export default function Header() {
   const path = usePathname();
   const status = useAiStatus();
   const ready = aiIsReady(status);
-  const label = !status ? "Checking AI…" : ready ? (status.warm ? "AI ready" : "AI warming up") : status.connected ? "Model missing" : "Offline mode";
-  const title = !status
+  const label = LIVE_SITE ? "Live preview" : !status ? "Checking AI…" : ready ? (status.warm ? "AI ready" : "AI warming up") : status.connected ? "Model missing" : "Offline mode";
+  const title = LIVE_SITE
+    ? "This is the live preview: the AI and publishing are turned off."
+    : !status
     ? ""
     : ready
       ? `Connected to ${status.model} on this laptop`

@@ -8,6 +8,7 @@ import { downloadNormalPng } from "@/lib/exportNormalPng";
 import { downloadPatternPng } from "@/lib/exportPng";
 import { useLibrary } from "@/lib/libraryClient";
 import { simulate } from "@/lib/normal";
+import { patternHref } from "@/lib/site";
 import { isTraditional, type PatternSource } from "@/lib/types";
 import ExportButton from "./ExportButton";
 import KnotGrid, { type Orientation } from "./KnotGrid";
@@ -121,7 +122,7 @@ export default function PatternView({ id }: { id: string }) {
               <p className="text-sm text-muted">
                 Remixed from{" "}
                 {original ? (
-                  <Link href={`/pattern/${original.id}`} className="font-bold text-berry-dark hover:underline">
+                  <Link href={patternHref(original.id)} className="font-bold text-berry-dark hover:underline">
                     {original.title}
                   </Link>
                 ) : (
@@ -187,7 +188,7 @@ export default function PatternView({ id }: { id: string }) {
               <ul className="space-y-1">
                 {remixes.map((r) => (
                   <li key={r.id}>
-                    <Link href={`/pattern/${r.id}`} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-blush/50">
+                    <Link href={patternHref(r.id)} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-blush/50">
                       <GitFork className="h-3.5 w-3.5 text-purple-500" />
                       <span className="font-bold">{r.title}</span>
                       <span className="text-muted">by {r.author}</span>

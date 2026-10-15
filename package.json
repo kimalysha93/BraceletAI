@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:live": "node scripts/build-live.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.51.0",

@@ -4,6 +4,7 @@ import { ChevronDown, Frown, Ruler, Scissors, Smile, Meh } from "lucide-react";
 import { useMemo, useState } from "react";
 import { countColors, type Grid } from "@/lib/grid";
 import { getThread } from "@/lib/palette";
+import { LIVE_SITE } from "@/lib/site";
 import { KEYS, loadLocal, saveLocal } from "@/lib/storage";
 import { CM_PER_INCH, type StartMethod } from "@/lib/stringConfig";
 import { calculateStrings, calibrateKnotLength, formatLength } from "@/lib/strings";
@@ -258,7 +259,8 @@ export default function StringCalculator({ grid, patternId, compact = false }: {
         </div>
       </div>
 
-      <div className="no-print rounded-2xl border border-dashed border-line p-3">
+      {/* Nobody collects these answers on the live preview, so don't ask. */}
+      <div className={`no-print rounded-2xl border border-dashed border-line p-3 ${LIVE_SITE ? "hidden" : ""}`}>
         <p className="mb-2 text-xs font-bold text-muted">Made it? How was the string length?</p>
         <div className="grid grid-cols-3 gap-1.5">
           <button className="btn-soft px-2 text-xs" onClick={() => sendFeedback("short")}>

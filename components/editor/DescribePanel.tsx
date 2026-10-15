@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { aiIsReady, refreshAiStatus, useAiStatus } from "@/lib/aiStatus";
 import type { GenerateResponse } from "@/lib/apiTypes";
 import { parseDescription } from "@/lib/fallbackParser";
+import { LIVE_SITE } from "@/lib/site";
 import type { Recipe } from "@/lib/recipe";
 
 const EXAMPLES = [
@@ -64,6 +65,8 @@ export default function DescribePanel<R = Recipe>({
     let data: GenerateResponse<R>;
     const started = performance.now();
     try {
+      // The live site has no server, so go straight to the keyword helper.
+      if (LIVE_SITE) throw new Error("live site");
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,9 +75,10 @@ export default function DescribePanel<R = Recipe>({
       if (!res.ok) throw new Error("bad response");
       data = (await res.json()) as GenerateResponse<R>;
     } catch {
-      // No server at all (e.g. a static demo): parse in the browser.
+      // No server at all (e.g. a static host): parse in the browser.
       const recipe = parse(text);
-      data = { recipe, raw: recipe, mode: "offline", ms: Math.round(performance.now() - started), reason: "No server connection" };
+      const reason = LIVE_SITE ? "The AI is turned off on the live preview" : "No server connection";
+      data = { recipe, raw: recipe, mode: "offline", ms: Math.round(performance.now() - started), reason };
     }
     setResult(data);
     setLoading(false);
@@ -95,7 +99,10 @@ export default function DescribePanel<R = Recipe>({
         </span>
         <div>
           <h3 className="section-title leading-tight">Describe your bracelet</h3>
-          <p className="text-xs text-muted">{subtitle}</p>
+          <p className="text-xs text-muted">
+            {subtitle}
+            {LIVE_SITE && <span className="font-semibold text-ink"> On the live preview, a simple keyword helper stands in for the AI.</span>}
+          </p>
         </div>
       </div>
 
@@ -163,7 +170,7 @@ export default function DescribePanel<R = Recipe>({
               </span>
             ) : (
               <span className="chip border-gray-200 bg-gray-50 text-gray-600" title={result.reason}>
-                <WifiOff className="h-3.5 w-3.5" /> Offline mode
+                <WifiOff className="h-3.5 w-3.5" /> {LIVE_SITE ? "Keyword mode" : "Offline mode"}
               </span>
             )}
           </div>
@@ -174,17 +181,21 @@ export default function DescribePanel<R = Recipe>({
             </p>
           )}
           <div className="flex gap-2">
-            <button className="btn-soft flex-1" onClick={() => generate(true)}>
-              <RotateCcw className="h-4 w-4" /> Try again
-            </button>
+            {/* The keyword helper always gives the same answer, so "Try again" only helps with the AI. */}
+            {!LIVE_SITE && (
+              <button className="btn-soft flex-1" onClick={() => generate(true)}>
+                <RotateCcw className="h-4 w-4" /> Try again
+              </button>
+            )}
             <button className={`btn-soft flex-1 ${showRecipe ? "border-berry bg-blush text-berry-dark" : ""}`} onClick={() => setShowRecipe((v) => !v)}>
-              <Braces className="h-4 w-4" /> {showRecipe ? "Hide" : "Show"} AI recipe
+              <Braces className="h-4 w-4" /> {showRecipe ? "Hide" : "Show"} {LIVE_SITE ? "recipe" : "AI recipe"}
             </button>
           </div>
           {showRecipe && (
             <div className="animate-pop-in">
               <p className="mb-1.5 text-xs text-muted">
-                The AI only writes this little recipe. Our pattern engine turns it into real, knottable rows, so every pattern follows the rules.
+                {LIVE_SITE ? "With the AI on, it writes this little recipe instead of the keyword helper." : "The AI only writes this little recipe."} Our
+                pattern engine turns it into real, knottable rows, so every pattern follows the rules.
               </p>
               <pre className="max-h-64 overflow-auto rounded-xl bg-ink p-3 font-mono text-[11.5px] leading-relaxed text-pink-100">
                 {JSON.stringify(result.recipe, null, 2)}

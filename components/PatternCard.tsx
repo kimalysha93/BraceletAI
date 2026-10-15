@@ -1,6 +1,7 @@
 import { GitFork } from "lucide-react";
 import Link from "next/link";
 import { simulate, type NormalPattern } from "@/lib/normal";
+import { patternHref } from "@/lib/site";
 import { isTraditional, type LibraryPattern } from "@/lib/types";
 import BraceletThumb from "./BraceletThumb";
 import BraceletStrip from "./normal/BraceletStrip";
@@ -9,7 +10,7 @@ export default function PatternCard({ pattern, remixes = 0 }: { pattern: Library
   const traditional = isTraditional(pattern);
   return (
     <Link
-      href={`/pattern/${pattern.id}`}
+      href={patternHref(pattern.id)}
       className="card group flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-[0_14px_30px_-12px_rgb(120_60_90/0.3)]"
     >
       <div className="flex h-28 items-center bg-gradient-to-br from-blush/60 to-lav-soft/50 px-3">
