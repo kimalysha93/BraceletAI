@@ -4,12 +4,17 @@ import { ArrowLeft, CalendarDays, GitFork, Minus, Plus, Printer, Sparkles } from
 import Link from "next/link";
 import { useState } from "react";
 import { APP_NAME } from "@/lib/constants";
+import { downloadNormalPng } from "@/lib/exportNormalPng";
 import { downloadPatternPng } from "@/lib/exportPng";
 import { useLibrary } from "@/lib/libraryClient";
-import type { PatternSource } from "@/lib/types";
+import { simulate } from "@/lib/normal";
+import { isTraditional, type PatternSource } from "@/lib/types";
 import ExportButton from "./ExportButton";
 import KnotGrid, { type Orientation } from "./KnotGrid";
 import Legend from "./Legend";
+import BraceletStrip from "./normal/BraceletStrip";
+import NormalDiagram from "./normal/NormalDiagram";
+import NormalStringPanel from "./normal/NormalStringPanel";
 import StringCalculator from "./StringCalculator";
 import { useToast } from "./ui/Toast";
 
@@ -52,9 +57,14 @@ export default function PatternView({ id }: { id: string }) {
   const original = p.remixedFrom ? patterns.find((x) => x.id === p.remixedFrom) : undefined;
   const remixes = patterns.filter((x) => x.remixedFrom === p.id);
 
+  const trad = isTraditional(p);
+  // Cheap to work out, and can't be a hook after the early returns above.
+  const sim = trad ? simulate(p.normal) : null;
+
   const exportPng = async (mirrored: boolean) => {
     try {
-      await downloadPatternPng(p.grid, p.title, p.author, { mirrored });
+      if (trad) await downloadNormalPng(p.normal, p.title, { mirrored, author: p.author });
+      else await downloadPatternPng(p.grid, p.title, p.author, { mirrored });
       toast(mirrored ? "Mirrored PNG downloaded." : "PNG downloaded.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't export.", "warn");
@@ -74,11 +84,12 @@ export default function PatternView({ id }: { id: string }) {
               <div>
                 <h1 className="font-display text-3xl font-semibold">{p.title}</h1>
                 <p className="mt-0.5 text-muted">
-                  by <span className="font-bold text-ink">{p.author}</span> · {p.width} × {p.height} knots · {p.palette.length} colours
+                  by <span className="font-bold text-ink">{p.author}</span> ·{" "}
+                  {trad ? `Traditional · ${p.width} strings · ${p.height}-row repeat` : `${p.width} × ${p.height} knots`} · {p.palette.length} colours
                 </p>
               </div>
               <div className="no-print flex flex-wrap gap-2">
-                <Link href={`/create?remix=${encodeURIComponent(p.id)}`} className="btn-primary">
+                <Link href={`${trad ? "/create/normal" : "/create"}?remix=${encodeURIComponent(p.id)}`} className="btn-primary">
                   <GitFork className="h-4 w-4" /> Remix
                 </Link>
                 <ExportButton onExport={exportPng} />
@@ -122,7 +133,8 @@ export default function PatternView({ id }: { id: string }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 border-b border-line bg-cream/60 px-5 py-3">
-            <Legend grid={p.grid} />
+            {/* For traditional patterns: how many knots of each colour show in one repeat. */}
+            <Legend grid={trad ? sim!.colors : p.grid} />
             <div className="no-print ml-auto flex items-center gap-1.5">
               <button className="icon-btn h-8 w-8" onClick={() => setCell((c) => Math.max(8, c - 3))} aria-label="Zoom out">
                 <Minus className="h-4 w-4" />
@@ -130,7 +142,7 @@ export default function PatternView({ id }: { id: string }) {
               <button className="icon-btn h-8 w-8" onClick={() => setCell((c) => Math.min(32, c + 3))} aria-label="Zoom in">
                 <Plus className="h-4 w-4" />
               </button>
-              <div className="flex rounded-full border border-line bg-white p-0.5">
+              <div className={`flex rounded-full border border-line bg-white p-0.5 ${trad ? "hidden" : ""}`}>
                 {(
                   [
                     ["vertical", "Pattern"],
@@ -151,14 +163,23 @@ export default function PatternView({ id }: { id: string }) {
 
           <div className="overflow-auto p-6">
             <div className="flex justify-center">
-              <KnotGrid grid={p.grid} cell={orientation === "horizontal" ? Math.min(cell, 14) : cell} orientation={orientation} />
+              {trad ? (
+                <div className="flex min-w-0 flex-col items-center gap-5">
+                  <div className="max-w-full overflow-x-auto">
+                    <BraceletStrip pattern={p.normal} sim={sim!} knot={10} rows={Math.max(p.height * 2, 64)} />
+                  </div>
+                  <NormalDiagram pattern={p.normal} sim={sim!} cell={Math.max(14, cell + 4)} />
+                </div>
+              ) : (
+                <KnotGrid grid={p.grid} cell={orientation === "horizontal" ? Math.min(cell, 14) : cell} orientation={orientation} />
+              )}
             </div>
           </div>
         </section>
 
         <aside className="space-y-6">
           <div className="card p-5">
-            <StringCalculator grid={p.grid} patternId={p.id} />
+            {trad ? <NormalStringPanel pattern={p.normal} /> : <StringCalculator grid={p.grid} patternId={p.id} />}
           </div>
           {remixes.length > 0 && (
             <div className="card no-print p-5">

@@ -2,7 +2,7 @@ import "server-only";
 import { promises as fs } from "fs";
 import path from "path";
 import { SEED_PATTERNS } from "../seed";
-import type { AlphaPattern } from "../types";
+import type { LibraryPattern } from "../types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const PATTERNS_FILE = path.join(DATA_DIR, "patterns.json");
@@ -32,8 +32,8 @@ async function readJson<T>(file: string): Promise<T | null> {
 }
 
 /** All library patterns. Seeds the file on first run; on read-only hosts it just returns the seeds. */
-export async function readPatterns(): Promise<AlphaPattern[]> {
-  const existing = await readJson<AlphaPattern[]>(PATTERNS_FILE);
+export async function readPatterns(): Promise<LibraryPattern[]> {
+  const existing = await readJson<LibraryPattern[]>(PATTERNS_FILE);
   if (Array.isArray(existing)) {
     // Seeds added after the file was first written still show up.
     const have = new Set(existing.map((p) => p.id));
@@ -49,9 +49,9 @@ export async function readPatterns(): Promise<AlphaPattern[]> {
 }
 
 /** Returns true if saved to disk, false if the host doesn't allow writes. */
-export async function addPattern(pattern: AlphaPattern): Promise<boolean> {
+export async function addPattern(pattern: LibraryPattern): Promise<boolean> {
   return serial(async () => {
-    const all = (await readJson<AlphaPattern[]>(PATTERNS_FILE)) ?? [...SEED_PATTERNS];
+    const all = (await readJson<LibraryPattern[]>(PATTERNS_FILE)) ?? [...SEED_PATTERNS];
     all.push(pattern);
     try {
       await writeJson(PATTERNS_FILE, all);

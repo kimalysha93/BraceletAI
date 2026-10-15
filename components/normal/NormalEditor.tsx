@@ -1,6 +1,7 @@
 "use client";
 
-import { FlipHorizontal2, Maximize, Minus, Paintbrush, PenLine, Plus, Redo2, RefreshCw, RotateCcw, Ruler, Shapes, Sparkles, Undo2 } from "lucide-react";
+import { FlipHorizontal2, GitFork, Maximize, Minus, Paintbrush, PenLine, Plus, Redo2, RefreshCw, RotateCcw, Ruler, Send, Shapes, Sparkles, Undo2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_COLORS } from "@/lib/constants";
 import { downloadNormalPng } from "@/lib/exportNormalPng";
@@ -27,10 +28,13 @@ import {
   type NormalStyle,
 } from "@/lib/normal";
 import { buildFromNormalRecipe, parseNormalDescription, type NormalRecipe } from "@/lib/normalRecipe";
-import { getThread, THREADS } from "@/lib/palette";
-import { loadLocal, saveLocal } from "@/lib/storage";
+import { fetchLibrary, publishPattern, PublishError } from "@/lib/libraryClient";
+import { getThread, isValidThread, THREADS } from "@/lib/palette";
+import { KEYS, loadLocal, saveLocal } from "@/lib/storage";
+import { isTraditional, type PatternSource } from "@/lib/types";
 import DescribePanel from "../editor/DescribePanel";
 import EditorTypeSwitch from "../editor/EditorTypeSwitch";
+import PublishModal, { type PublishFields } from "../editor/PublishModal";
 import { useHistory } from "../editor/useHistory";
 import ExportButton from "../ExportButton";
 import { useToast } from "../ui/Toast";
@@ -42,7 +46,8 @@ import NormalStringPanel, { NormalStringSummary } from "./NormalStringPanel";
 
 type Tab = "describe" | "classics" | "strings";
 type Tool = "cycle" | "paint" | Knot;
-type Draft = { title: string; pattern: NormalPattern };
+type Meta = { source: PatternSource; remixedFrom?: string; remixTitle?: string; tags: string[] };
+type Draft = { title: string; pattern: NormalPattern; meta?: Meta };
 
 const DRAFT_KEY = "abb:normal-draft";
 const ZOOMS = [12, 14, 16, 18, 20, 23, 26, 30, 34];
@@ -66,7 +71,8 @@ function readDraft(): Draft | null {
   const d = loadLocal<Draft | null>(DRAFT_KEY, null);
   if (!d || typeof d.title !== "string" || !isNormalPattern(d.pattern)) return null;
   const pattern = normalizePattern(d.pattern);
-  return pattern.strings.every((s) => !!getThread(s)) ? { title: d.title, pattern } : null;
+  const meta = d.meta && typeof d.meta.source === "string" && Array.isArray(d.meta.tags) ? d.meta : undefined;
+  return pattern.strings.every(isValidThread) ? { title: d.title, pattern, meta } : null;
 }
 
 function capitalise(s: string) {
@@ -80,7 +86,9 @@ function stringColors(p: NormalPattern) {
 
 export default function NormalEditor() {
   const toast = useToast();
-  const [start] = useState(() => (new URLSearchParams(window.location.search).get("new") === "1" ? null : readDraft()));
+  const router = useRouter();
+  const [remixId] = useState(() => new URLSearchParams(window.location.search).get("remix"));
+  const [start] = useState(() => (remixId || new URLSearchParams(window.location.search).get("new") === "1" ? null : readDraft()));
   // Drop ?new=1 so a refresh doesn't throw the new work away. (In an effect: the router can't change during render.)
   useEffect(() => {
     if (window.location.search.includes("new=1")) window.history.replaceState(null, "", "/create/normal");
@@ -93,6 +101,8 @@ export default function NormalEditor() {
   const used = stringColors(pattern);
 
   const [title, setTitle] = useState(start?.title ?? "Pink chevron");
+  const [meta, setMeta] = useState<Meta>(() => start?.meta ?? { source: "manual", tags: [] });
+  const [publishOpen, setPublishOpen] = useState(false);
   const [tool, setTool] = useState<Tool>("cycle");
   const [color, setColor] = useState("hot-pink");
   const [mirror, setMirror] = useState(false);
@@ -117,9 +127,43 @@ export default function NormalEditor() {
   });
 
   useEffect(() => {
-    const t = setTimeout(() => saveLocal(DRAFT_KEY, { title, pattern } satisfies Draft), 300);
+    const t = setTimeout(() => saveLocal(DRAFT_KEY, { title, pattern, meta } satisfies Draft), 300);
     return () => clearTimeout(t);
-  }, [title, pattern]);
+  }, [title, pattern, meta]);
+
+  // Opening a library pattern to remix it (?remix=id).
+  useEffect(() => {
+    if (!remixId) return;
+    let alive = true;
+    fetchLibrary().then((all) => {
+      const p = all.find((x) => x.id === remixId);
+      if (!alive) return;
+      if (!p) {
+        toast("Couldn't find that pattern to remix.", "warn");
+        return;
+      }
+      if (!isTraditional(p)) {
+        router.replace(`/create?remix=${encodeURIComponent(p.id)}`);
+        return;
+      }
+      history.reset(p.normal);
+      setCell(fitCell(p.normal));
+      setTitle(`${p.title} (remix)`);
+      setMeta({ source: "remix", remixedFrom: p.id, remixTitle: p.title, tags: p.tags.filter((t) => t !== "remix") });
+      toast(
+        <>
+          Remixing <b>{p.title}</b> by {p.author}. Make it yours!
+        </>,
+        "info",
+      );
+      window.history.replaceState(null, "", "/create/normal");
+    });
+    return () => {
+      alive = false;
+    };
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = (p: NormalPattern, name: string) => {
     commit(p);
@@ -207,11 +251,18 @@ export default function NormalEditor() {
     const r = built.recipe;
     const names = r.colors.slice(0, 2).map((c) => getThread(c).name);
     load(built.pattern, capitalise(`${names.join(" & ")} ${STYLE_INFO[r.style].name.toLowerCase()}`));
+    // A remix stays a remix even after the AI changes it.
+    setMeta((m) => ({
+      ...m,
+      source: m.source === "remix" ? "remix" : "ai",
+      tags: [...new Set([STYLE_INFO[r.style].name.toLowerCase(), ...names, ...(r.border ? ["border"] : [])])],
+    }));
     for (const note of built.notes) toast(note, "info");
   };
 
   const pickClassic = (style: NormalStyle, p: NormalPattern) => {
     load(p, capitalise(`${getThread(used[0]).name} ${STYLE_INFO[style].name.toLowerCase()}`));
+    setMeta((m) => ({ ...m, source: m.source === "remix" ? "remix" : "manual", tags: [STYLE_INFO[style].name.toLowerCase()] }));
     toast(`${STYLE_INFO[style].name} loaded. Click knots to make it your own.`, "success");
   };
 
@@ -228,6 +279,31 @@ export default function NormalEditor() {
       toast(e instanceof Error ? e.message : "Couldn't export.", "warn");
     }
   };
+;
+
+  const publish = async (f: PublishFields) => {
+    try {
+      const { pattern: saved, savedTo } = await publishPattern({
+        kind: "normal",
+        title: f.title,
+        author: f.author,
+        tags: f.tags,
+        width: n,
+        height: rows,
+        normal: pattern,
+        source: meta.source,
+        remixedFrom: meta.remixedFrom,
+      });
+      saveLocal(KEYS.author, f.author);
+      setPublishOpen(false);
+      setTitle(f.title);
+      setMeta((m) => ({ ...m, tags: f.tags }));
+      toast(savedTo === "library" ? "Published to the library!" : "Published! (Saved in this browser on this demo site.)", "success");
+      router.push(`/pattern/${saved.id}`);
+    } catch (e) {
+      toast(e instanceof PublishError ? e.message : "Couldn't publish right now.", "warn");
+    }
+  }
 
   const zoom = (dir: 1 | -1) => {
     const i = ZOOMS.findIndex((z) => z >= cell);
@@ -310,6 +386,9 @@ export default function NormalEditor() {
             <RotateCcw className="h-4 w-4" />
           </button>
           <ExportButton onExport={exportPng} />
+          <button className="btn-primary" onClick={() => setPublishOpen(true)}>
+            <Send className="h-4 w-4" /> Publish
+          </button>
         </div>
       </div>
 
@@ -394,7 +473,12 @@ export default function NormalEditor() {
               <div className="min-w-0 flex-1 overflow-x-auto">
                 <BraceletStrip pattern={pattern} sim={sim} knot={10} rows={Math.max(rows * 2, 72)} />
               </div>
-              <span className="shrink-0 text-xs font-semibold text-muted">
+              <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-muted">
+                {meta.remixedFrom && (
+                  <span className="chip border-lav-soft bg-lav-soft text-purple-700" title="Publishing credits the original pattern">
+                    <GitFork className="h-3.5 w-3.5" /> Remix of {meta.remixTitle ?? "a pattern"}
+                  </span>
+                )}
                 {n} strings · {rows} rows
               </span>
             </div>
@@ -454,6 +538,14 @@ export default function NormalEditor() {
           )}
         </aside>
       </div>
+
+      <PublishModal
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        preview={<BraceletStrip pattern={pattern} sim={sim} rows={Math.max(48, rows * 2)} fluid />}
+        initial={{ title, author: loadLocal<string>(KEYS.author, ""), tags: meta.tags }}
+        onPublish={publish}
+      />
     </div>
   );
 }

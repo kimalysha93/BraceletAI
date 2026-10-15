@@ -41,7 +41,8 @@ import { MOTIFS, type MotifId } from "@/lib/motifs";
 import { getThread, isValidThread } from "@/lib/palette";
 import { buildFromRecipe, insertMotif, type Recipe } from "@/lib/recipe";
 import { KEYS, loadLocal, saveLocal } from "@/lib/storage";
-import type { PatternSource } from "@/lib/types";
+import { isTraditional, type PatternSource } from "@/lib/types";
+import BraceletThumb from "../BraceletThumb";
 import ExportButton from "../ExportButton";
 import KnotGrid, { type Orientation } from "../KnotGrid";
 import Legend from "../Legend";
@@ -176,6 +177,11 @@ export default function Editor() {
       if (!alive) return;
       if (!p) {
         toast("Couldn't find that pattern to remix.", "warn");
+        return;
+      }
+      // Traditional patterns are remixed in their own editor.
+      if (isTraditional(p)) {
+        router.replace(`/create/normal?remix=${encodeURIComponent(p.id)}`);
         return;
       }
       loadPattern(
@@ -602,7 +608,7 @@ export default function Editor() {
       <PublishModal
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
-        grid={grid}
+        preview={<BraceletThumb grid={grid} maxWidth={400} />}
         initial={{ title: meta.title, author, tags: meta.tags }}
         onPublish={publish}
       />

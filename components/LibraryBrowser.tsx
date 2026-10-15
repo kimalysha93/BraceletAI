@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { remixCount, useLibrary } from "@/lib/libraryClient";
+import { isTraditional } from "@/lib/types";
 import PatternCard from "./PatternCard";
+
+const KINDS = [
+  { id: "any", label: "All types", hint: "" },
+  { id: "alpha", label: "Alpha", hint: "Pixel-style patterns: words, pictures, photos" },
+  { id: "normal", label: "Traditional", hint: "Diagonal knot patterns: chevrons, zigzags, checks" },
+];
 
 const WIDTHS = [
   { id: "any", label: "Any width", test: () => true },
@@ -36,6 +43,7 @@ export default function LibraryBrowser() {
   const [width, setWidth] = useState("any");
   const [length, setLength] = useState("any");
   const [colors, setColors] = useState("any");
+  const [kind, setKind] = useState(params.get("type") ?? "any");
 
   const popularTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -58,10 +66,12 @@ export default function LibraryBrowser() {
           p.author.toLowerCase().includes(query) ||
           p.tags.some((t) => t.includes(query))) &&
         wTest(p.width) &&
-        lTest(p.height) &&
-        cTest(p.palette.length),
+        // Traditional patterns repeat to any length, so they fit every length filter.
+        (isTraditional(p) || lTest(p.height)) &&
+        cTest(p.palette.length) &&
+        (kind === "any" || (kind === "normal") === isTraditional(p)),
     );
-  }, [patterns, q, width, length, colors]);
+  }, [patterns, q, width, length, colors, kind]);
 
   const pill = (active: boolean) =>
     `rounded-full border px-3 py-1.5 text-sm font-bold transition ${active ? "border-berry bg-blush text-berry-dark" : "border-line bg-white text-muted hover:text-ink"}`;
@@ -89,6 +99,12 @@ export default function LibraryBrowser() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {KINDS.map((k) => (
+            <button key={k.id} className={pill(kind === k.id)} title={k.hint || undefined} onClick={() => setKind(k.id)}>
+              {k.label}
+            </button>
+          ))}
+          <span className="mx-1 h-6 w-px bg-line" />
           {WIDTHS.map((w) => (
             <button key={w.id} className={pill(width === w.id)} onClick={() => setWidth(w.id)}>
               {w.label}

@@ -6,6 +6,7 @@ import { APP_SHORT_PITCH, APP_TAGLINE } from "@/lib/constants";
 import { FEATURED_IDS, SEED_PATTERNS } from "@/lib/seed";
 import { DEFAULT_STRING_SETTINGS } from "@/lib/stringConfig";
 import { calculateStrings, formatLength } from "@/lib/strings";
+import { isTraditional, type AlphaPattern } from "@/lib/types";
 
 const STEPS = [
   {
@@ -30,8 +31,9 @@ const STEPS = [
 
 export default function Home() {
   const featured = FEATURED_IDS.map((id) => SEED_PATTERNS.find((p) => p.id === id)!).filter(Boolean);
-  const hero = SEED_PATTERNS.find((p) => p.id === "seed-maya")!;
-  const hero2 = SEED_PATTERNS.find((p) => p.id === "seed-night")!;
+  const alpha = (id: string) => SEED_PATTERNS.find((p): p is AlphaPattern => p.id === id && !isTraditional(p))!;
+  const hero = alpha("seed-maya");
+  const hero2 = alpha("seed-night");
   const cut = calculateStrings(hero.grid, DEFAULT_STRING_SETTINGS).basePieces[0];
   const remixes = (id: string) => SEED_PATTERNS.filter((p) => p.remixedFrom === id).length;
 

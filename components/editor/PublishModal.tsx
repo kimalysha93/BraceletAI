@@ -1,9 +1,7 @@
 "use client";
 
 import { Send } from "lucide-react";
-import { useState } from "react";
-import type { Grid } from "@/lib/grid";
-import BraceletThumb from "../BraceletThumb";
+import { useState, type ReactNode } from "react";
 import Modal from "../ui/Modal";
 
 export type PublishFields = { title: string; author: string; tags: string[] };
@@ -11,25 +9,25 @@ export type PublishFields = { title: string; author: string; tags: string[] };
 export default function PublishModal({
   open,
   onClose,
-  grid,
+  preview,
   initial,
   onPublish,
 }: {
   open: boolean;
   onClose: () => void;
-  grid: Grid;
+  preview: ReactNode;
   initial: PublishFields;
   onPublish: (fields: PublishFields) => Promise<void>;
 }) {
   return (
     <Modal open={open} onClose={onClose} title="Share to the library">
       {/* keyed so the form resets to the latest title each time it opens */}
-      {open && <PublishForm key={initial.title} grid={grid} initial={initial} onPublish={onPublish} />}
+      {open && <PublishForm key={initial.title} preview={preview} initial={initial} onPublish={onPublish} />}
     </Modal>
   );
 }
 
-function PublishForm({ grid, initial, onPublish }: { grid: Grid; initial: PublishFields; onPublish: (f: PublishFields) => Promise<void> }) {
+function PublishForm({ preview, initial, onPublish }: { preview: ReactNode; initial: PublishFields; onPublish: (f: PublishFields) => Promise<void> }) {
   const [title, setTitle] = useState(initial.title);
   const [author, setAuthor] = useState(initial.author);
   const [tags, setTags] = useState(initial.tags.join(", "));
@@ -59,9 +57,7 @@ function PublishForm({ grid, initial, onPublish }: { grid: Grid; initial: Publis
       }}
       className="space-y-3"
     >
-      <div className="rounded-2xl border border-line bg-cream p-3">
-        <BraceletThumb grid={grid} maxWidth={400} />
-      </div>
+      <div className="overflow-hidden rounded-2xl border border-line bg-cream p-3">{preview}</div>
       <div>
         <label className="label" htmlFor="pub-title">Pattern name</label>
         <input id="pub-title" className="input" maxLength={60} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />

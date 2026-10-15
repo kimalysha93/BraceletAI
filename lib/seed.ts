@@ -1,7 +1,9 @@
 import { paintBackground } from "./backgrounds";
 import { createGrid, paletteFor, replaceColor, type Grid } from "./grid";
+import { buildStyle, type NormalPattern } from "./normal";
+import { getThread } from "./palette";
 import { buildFromRecipe, sanitizeRecipe, type Recipe } from "./recipe";
-import type { AlphaPattern, PatternSource } from "./types";
+import type { AlphaPattern, LibraryPattern, PatternSource, TraditionalPattern } from "./types";
 
 // Sample library patterns, all made with this app's own font and motifs. Authors are made up.
 
@@ -275,18 +277,72 @@ const DEFS: SeedDef[] = [
     grid: replaceColor(hello, "teal", "purple") },
 ];
 
-export const SEED_PATTERNS: AlphaPattern[] = DEFS.map((d) => ({
-  id: d.id,
-  title: d.title,
-  author: d.author,
-  width: d.grid[0].length,
-  height: d.grid.length,
-  palette: paletteFor(d.grid),
-  grid: d.grid,
-  tags: d.tags,
-  remixedFrom: d.remixedFrom,
-  createdAt: new Date(Date.UTC(2026, 6, d.day, 15, 0, 0)).toISOString(),
-  source: d.source,
-}));
+// ---- traditional (diagonal knot) patterns, built from the classic styles ----
+
+type TraditionalDef = Omit<SeedDef, "grid"> & { normal: NormalPattern };
+
+const TRADITIONAL_DEFS: TraditionalDef[] = [
+  { id: "seed-trad-sunset", title: "Sunset chevron", author: "Jules", tags: ["chevron", "sunset", "beginner", "orange"], source: "ai", day: 23,
+    normal: buildStyle("chevron", ["yellow", "orange", "coral", "hot-pink"], 8) },
+  { id: "seed-trad-candy-cane", title: "Candy cane", author: "Noel", tags: ["candy stripe", "christmas", "red", "beginner"], source: "manual", day: 29,
+    normal: buildStyle("diagonal", ["red", "white"], 8) },
+  { id: "seed-trad-rainbow-zigzag", title: "Rainbow zigzag", author: "Iris", tags: ["zigzag", "rainbow", "border"], source: "ai", day: 34,
+    normal: buildStyle("zigzag", ["red", "orange", "yellow", "green", "sky-blue", "purple"], 14, "black") },
+  { id: "seed-trad-xoxo", title: "XOXO", author: "Valentina", tags: ["criss-cross", "valentine", "pink", "hearts"], source: "manual", day: 39,
+    normal: buildStyle("criss-cross", ["hot-pink", "pink", "white"], 12) },
+  { id: "seed-trad-bumblebee", title: "Bumblebee bolt", author: "Bee", tags: ["lightning", "yellow", "black", "bold"], source: "ai", day: 45,
+    normal: buildStyle("lightning", ["yellow", "black"], 8) },
+  { id: "seed-trad-picnic", title: "Picnic gingham", author: "Hattie", tags: ["checkerboard", "gingham", "red", "summer"], source: "manual", day: 51,
+    normal: buildStyle("checker", ["red", "white"], 10) },
+  { id: "seed-trad-twin-peaks", title: "Twin peaks", author: "Alpine", tags: ["double chevron", "blue", "wide"], source: "manual", day: 57,
+    normal: buildStyle("double-chevron", ["navy", "sky-blue", "white"], 12) },
+  { id: "seed-trad-boho", title: "Boho diamonds", author: "Sienna", tags: ["diamond", "boho", "earthy", "border"], source: "manual", day: 62,
+    normal: buildStyle("diamond", ["burgundy", "orange", "beige", "cream"], 10, "brown") },
+  { id: "seed-trad-mint-ripple", title: "Mint ripple", author: "Marina", tags: ["ripple", "mint", "pastel", "beginner"], source: "manual", day: 66,
+    normal: buildStyle("ripple", ["mint", "teal"], 8) },
+  { id: "seed-trad-lavender-arrows", title: "Lavender arrows", author: "Wren", tags: ["arrowhead", "purple", "pastel"], source: "manual", day: 71,
+    normal: buildStyle("arrowhead", ["purple", "lavender", "white"], 10) },
+  { id: "seed-trad-ocean", title: "Ocean waves", author: "Nalu", tags: ["zigzag", "ocean", "blue", "summer"], source: "ai", day: 76,
+    normal: buildStyle("zigzag", ["navy", "blue", "sky-blue", "white"], 8) },
+  { id: "seed-trad-sunset-night", title: "Sunset chevron, after dark", author: "Theo", tags: ["chevron", "night", "remix", "purple"], source: "remix", remixedFrom: "seed-trad-sunset", day: 80,
+    normal: buildStyle("chevron", ["navy", "purple", "hot-pink", "yellow"], 8) },
+];
+
+const seedDate = (day: number) => new Date(Date.UTC(2026, 6, day, 15, 0, 0)).toISOString();
+
+export const SEED_PATTERNS: LibraryPattern[] = [
+  ...DEFS.map(
+    (d): AlphaPattern => ({
+      kind: "alpha",
+      id: d.id,
+      title: d.title,
+      author: d.author,
+      width: d.grid[0].length,
+      height: d.grid.length,
+      palette: paletteFor(d.grid),
+      grid: d.grid,
+      tags: d.tags,
+      remixedFrom: d.remixedFrom,
+      createdAt: seedDate(d.day),
+      source: d.source,
+    }),
+  ),
+  ...TRADITIONAL_DEFS.map(
+    (d): TraditionalPattern => ({
+      kind: "normal",
+      id: d.id,
+      title: d.title,
+      author: d.author,
+      width: d.normal.strings.length,
+      height: d.normal.knots.length,
+      palette: [...new Set(d.normal.strings)].map(getThread),
+      normal: d.normal,
+      tags: ["traditional", ...d.tags],
+      remixedFrom: d.remixedFrom,
+      createdAt: seedDate(d.day),
+      source: d.source,
+    }),
+  ),
+];
 
 export const FEATURED_IDS = ["seed-maya", "seed-night", "seed-rainbow", "seed-cherry"];

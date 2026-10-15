@@ -12,12 +12,15 @@ export default function BraceletStrip({
   knot = 9,
   rows = 60,
   className = "",
+  fluid = false,
 }: {
   pattern: NormalPattern;
   sim: Simulation;
   knot?: number;
   rows?: number;
   className?: string;
+  /** Scale to the container's width instead of a fixed knot size (library cards, publish preview). */
+  fluid?: boolean;
 }) {
   const gradId = `bs-${useId().replace(/:/g, "")}`;
   const w = knot * 0.62;
@@ -26,10 +29,10 @@ export default function BraceletStrip({
   const pad = 4;
   return (
     <svg
-      width={width + pad * 2}
-      height={height + pad * 2}
+      width={fluid ? "100%" : width + pad * 2}
+      height={fluid ? undefined : height + pad * 2}
       viewBox={`${-pad} ${-pad} ${width + pad * 2} ${height + pad * 2}`}
-      className={`block max-w-none ${className}`}
+      className={`block ${fluid ? "" : "max-w-none"} ${className}`}
       role="img"
       aria-label="Bracelet preview"
     >
