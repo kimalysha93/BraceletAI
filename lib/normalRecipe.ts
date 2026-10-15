@@ -61,7 +61,7 @@ const STYLE_WORDS: [RegExp, NormalStyle][] = [
   [/\b(arrow ?heads?|arrows?|upside[- ]down v)\b/, "arrowhead"],
   [/\b(chevrons?|vees?|v shapes?|v-shaped)\b/, "chevron"],
   [/\b(diamonds?|argyle|x shapes?)\b/, "diamond"],
-  [/\b(zig ?zags?|waves?|wavy|lightning)\b/, "zigzag"],
+  [/\b(zig[- ]?zags?|zig[- ]?zagg(?:y|ing)|waves?|wavy|lightning)\b/, "zigzag"],
   [/\b(candy ?stripes?|candy ?cane|diagonal|stripes?|striped|barber)\b/, "diagonal"],
 ];
 
@@ -97,7 +97,9 @@ export function readNormalIntent(input: string): { style?: NormalStyle; strings?
     }
   }
   const colors = [...new Set(found.sort((a, b) => a.at - b.at).map((f) => f.id))];
-  const theme = Object.keys(THEMES).find((k) => new RegExp(`\\b${k}\\b`).test(lower));
+  // Theme names are single words, so a word list avoids building regexes from variables.
+  const words = new Set(lower.split(/[^a-z]+/));
+  const theme = Object.keys(THEMES).find((k) => words.has(k));
   return { style, strings, colors, theme };
 }
 

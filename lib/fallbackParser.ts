@@ -51,14 +51,16 @@ export function parseDescription(input: string): Recipe {
   );
 
   // ---- theme ("sunset", "halloween"...) and background style ----
-  const themeKey = Object.keys(THEMES).find((k) => new RegExp(`\\b${k}\\b`).test(lower));
+  // Theme names are single words, so a word list avoids building regexes from variables.
+  const promptWords = new Set(lower.split(/[^a-z]+/));
+  const themeKey = Object.keys(THEMES).find((k) => promptWords.has(k));
   const theme = themeKey ? THEMES[themeKey] : undefined;
   const borderWords = "(?:border|edges?|sides)";
   const stripeBorder = new RegExp(`(stripe[sdy]?|striped)\\s+${borderWords}|${borderWords}\\s+(?:with\\s+)?stripes?`).test(lower);
   const dotBorder = new RegExp(`(dots?|dotted|polka)\\s+${borderWords}|${borderWords}\\s+(?:with\\s+)?dots|\\bdotted\\b`).test(lower);
   let style: BackgroundStyle = "solid";
   if (/\b(ombre|ombré|gradient|fade|fading)\b/.test(lower)) style = "gradient";
-  else if (/\b(zig ?zags?|chevrons?)\b/.test(lower)) style = "zigzag";
+  else if (/\b(zig[- ]?zags?|chevrons?)\b/.test(lower)) style = "zigzag";
   else if (/\bdiagonal/.test(lower)) style = "diagonal";
   else if (/\b(checker|checkered|checkerboard|checks)\b/.test(lower)) style = "checker";
   else if (/\bstripe/.test(lower) && !stripeBorder) style = "stripes";

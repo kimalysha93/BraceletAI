@@ -74,12 +74,11 @@ function stringColors(p: NormalPattern) {
 
 export default function NormalEditor() {
   const toast = useToast();
-  const [start] = useState(() => {
-    if (new URLSearchParams(window.location.search).get("new") !== "1") return readDraft();
-    // Drop ?new=1 so a refresh doesn't throw the new work away.
-    window.history.replaceState(null, "", "/create/normal");
-    return null;
-  });
+  const [start] = useState(() => (new URLSearchParams(window.location.search).get("new") === "1" ? null : readDraft()));
+  // Drop ?new=1 so a refresh doesn't throw the new work away. (In an effect: the router can't change during render.)
+  useEffect(() => {
+    if (window.location.search.includes("new=1")) window.history.replaceState(null, "", "/create/normal");
+  }, []);
   const history = useHistory<NormalPattern>(() => start?.pattern ?? buildStyle("chevron", DEFAULT_COLORS, 8));
   const { grid: pattern, commit } = history;
   const sim = useMemo(() => simulate(pattern), [pattern]);

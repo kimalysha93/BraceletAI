@@ -175,7 +175,7 @@ export const STYLE_INFO: Record<NormalStyle, { name: string; hint: string; mirro
   chevron: { name: "Chevron", hint: "Classic V stripes", mirrored: true },
   arrowhead: { name: "Arrowhead", hint: "Upside-down V stripes", mirrored: true },
   diagonal: { name: "Candy stripe", hint: "Diagonal stripes", mirrored: false },
-  zigzag: { name: "Zigzag", hint: "Stripes that switch direction", mirrored: false },
+  zigzag: { name: "Zigzag", hint: "Wavy stripes from edge to edge", mirrored: true },
   diamond: { name: "Diamonds", hint: "Chevrons and arrowheads together", mirrored: true },
 };
 
@@ -188,8 +188,12 @@ function styleKnot(style: NormalStyle, r: number, i: number, n: number, phase: n
   switch (style) {
     case "diagonal":
       return "f";
-    case "zigzag":
-      return Math.floor(r / phase) % 2 ? "b" : "f";
+    case "zigzag": {
+      // Forward and backward knots move strings the same way and only change which colour shows,
+      // so the stripes need a turn: a row of fb (turn ↘ into ↙) and a row of bf (turn back).
+      const c = r % (phase * 2 + 2);
+      return c < phase ? "f" : c === phase ? "fb" : c <= phase * 2 ? "b" : "bf";
+    }
     case "chevron":
       return vee;
     case "arrowhead":
@@ -220,18 +224,21 @@ export function buildStyle(style: NormalStyle, colors: string[], strings: number
   if (n % 2) n++;
   if (n > MAX_STRINGS) n -= 2;
   const s = stringsForStyle(style, colors, n);
-  const phases = style === "zigzag" || style === "diamond" ? [n / 2, n, n - 2, n + 2].map((x) => Math.max(2, Math.round(x / 2) * 2)) : [1];
+  // Zigzag stripes run one string short of the full width before turning, which always repeats in 2n rows.
+  const phases = style === "zigzag" ? [n - 1] : style === "diamond" ? [n / 2, n, n - 2, n + 2].map((x) => Math.max(2, Math.round(x / 2) * 2)) : [1];
+  const cycleOf = (phase: number) => (style === "zigzag" ? phase * 2 + 2 : style === "diamond" ? phase * 2 : 1);
   let fallback: NormalPattern | null = null;
   for (const phase of phases) {
+    const cycle = cycleOf(phase);
     for (let rows = 2; rows <= MAX_ROWS; rows += 2) {
       // Compound styles should show both directions at least once.
-      if (phase > 1 && rows < phase * 2) continue;
+      if (rows < cycle) continue;
       const p: NormalPattern = {
         strings: s,
         knots: Array.from({ length: rows }, (_, r) => Array.from({ length: knotsInRow(r, n) }, (_, i) => styleKnot(style, r, i, n, phase))),
       };
-      if (simulate(p).repeats && (phase === 1 || rows % (phase * 2) === 0)) return p;
-      if (!fallback && rows === Math.min(MAX_ROWS, Math.max(phase * 2, n * 2))) fallback = p;
+      if (simulate(p).repeats && rows % cycle === 0) return p;
+      if (!fallback && rows === Math.min(MAX_ROWS, Math.max(cycle, n * 2))) fallback = p;
     }
   }
   return fallback!;
