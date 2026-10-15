@@ -29,3 +29,9 @@ export const DEFAULT_STRING_SETTINGS = {
 };
 
 export const CM_PER_INCH = 2.54;
+
+/** Roughly how much bracelet each row of a traditional (diagonal) pattern makes, in cm. */
+export const NORMAL_ROW_HEIGHT_CM = 0.3;
+
+/** Traditional patterns are short repeats, so string lengths assume a typical wrist unless a length is typed. */
+export const NORMAL_DEFAULT_LENGTH_CM = 16;

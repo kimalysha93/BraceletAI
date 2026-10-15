@@ -2,18 +2,17 @@
 
 import { useCallback, useRef, useState } from "react";
 import { HISTORY_LIMIT } from "@/lib/constants";
-import type { Grid } from "@/lib/grid";
 
-type State = { present: Grid; past: Grid[]; future: Grid[] };
+type State<T> = { present: T; past: T[]; future: T[] };
 
-/** Undo/redo for the grid. A paint stroke counts as one step. */
-export function useHistory(initial: () => Grid) {
-  const [state, setState] = useState<State>(() => ({ present: initial(), past: [], future: [] }));
-  const strokeBase = useRef<Grid | null>(null);
+/** Undo/redo for a pattern. A paint stroke counts as one step. */
+export function useHistory<T>(initial: () => T) {
+  const [state, setState] = useState<State<T>>(() => ({ present: initial(), past: [], future: [] }));
+  const strokeBase = useRef<T | null>(null);
 
-  const commit = useCallback((next: Grid | ((g: Grid) => Grid)) => {
+  const commit = useCallback((next: T | ((g: T) => T)) => {
     setState((s) => {
-      const n = typeof next === "function" ? next(s.present) : next;
+      const n = typeof next === "function" ? (next as (g: T) => T)(s.present) : next;
       if (n === s.present) return s;
       return { present: n, past: [...s.past, s.present].slice(-HISTORY_LIMIT), future: [] };
     });
@@ -27,7 +26,7 @@ export function useHistory(initial: () => Grid) {
   }, []);
 
   /** Change the grid mid-stroke without adding history steps. */
-  const strokeUpdate = useCallback((fn: (g: Grid) => Grid) => {
+  const strokeUpdate = useCallback((fn: (g: T) => T) => {
     setState((s) => {
       const n = fn(s.present);
       return n === s.present ? s : { ...s, present: n };
@@ -45,8 +44,8 @@ export function useHistory(initial: () => Grid) {
   }, []);
 
   /** Start fresh (e.g. when opening a remix) with no undo steps. */
-  const reset = useCallback((grid: Grid) => {
-    setState({ present: grid, past: [], future: [] });
+  const reset = useCallback((value: T) => {
+    setState({ present: value, past: [], future: [] });
   }, []);
 
   const undo = useCallback(() => {

@@ -56,6 +56,9 @@ export default function Home() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-faint">Free, no account needed. Made for beginners.</p>
+          <Link href="/create/normal" className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-berry-dark hover:underline">
+            New: traditional chevrons, candy stripes and zigzags <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
 
         <div className="relative mx-auto w-full max-w-md py-6">

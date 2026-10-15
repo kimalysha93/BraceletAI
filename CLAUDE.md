@@ -12,8 +12,9 @@ Next.js 16 (App Router, Turbopack) + TypeScript + Tailwind v4. Spec: `bracelet-b
 ## Layout
 - `lib/` pure logic shared by client and server: palette, grid ops, 5×7 font, motifs, recipe → pattern builder, offline keyword parser, string maths (`lib/stringConfig.ts` holds every tunable constant), seed patterns.
 - `lib/server/` server-only: JSON-file pattern store (`data/patterns.json`, auto-seeded, gitignored) and the Ollama client.
-- `app/api/*` route handlers: `patterns` (GET/POST), `generate` (AI recipe with fallback), `status` (Ollama health + warm-up), `feedback`.
-- `components/editor/*` the `/create` editor (client-only, loaded with `ssr: false`).
+- `app/api/*` route handlers: `patterns` (GET/POST), `generate` (AI recipe with fallback), `generate-normal` (traditional recipe with fallback), `status` (Ollama health + warm-up), `feedback`.
+- `components/editor/*` the `/create` alpha editor (client-only, loaded with `ssr: false`).
+- Traditional (diagonal knot) patterns: `/create/normal`, `components/normal/*`. Logic in `lib/normal.ts` (knot simulation, classic styles, mirroring), `lib/normalRecipe.ts` (AI recipe + offline parser), `lib/normalLayout.ts` (geometry shared by the diagram and PNG export), `lib/normalStrings.ts`. Not publishable to the library yet.
 
 ## Rules
 - The AI only returns a recipe; `lib/recipe.ts` builds the knots. Keep it that way.

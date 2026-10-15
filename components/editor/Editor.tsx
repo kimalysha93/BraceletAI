@@ -49,6 +49,7 @@ import StringCalculator, { StringSummary } from "../StringCalculator";
 import Modal from "../ui/Modal";
 import { useToast } from "../ui/Toast";
 import DescribePanel from "./DescribePanel";
+import EditorTypeSwitch from "./EditorTypeSwitch";
 import LeftRail, { type SelectMode, type Tool } from "./LeftRail";
 import MotifPanel from "./MotifPanel";
 import PhotoPanel from "./PhotoPanel";
@@ -459,6 +460,7 @@ export default function Editor() {
               onChange={(e) => setMeta((m) => ({ ...m, title: e.target.value }))}
             />
           </label>
+          <EditorTypeSwitch current="alpha" />
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">

@@ -1,7 +1,7 @@
 import type { Recipe } from "./recipe";
 
-export type GenerateResponse = {
-  recipe: Recipe;
+export type GenerateResponse<R = Recipe> = {
+  recipe: R;
   raw: unknown;
   mode: "ai" | "offline";
   model?: string;

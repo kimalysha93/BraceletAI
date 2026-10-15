@@ -4,11 +4,7 @@ import { APP_NAME } from "./constants";
 import { countColors, mirrorGrid, type Grid } from "./grid";
 import { getThread } from "./palette";
 
-const FONT = "'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif";
-
-function esc(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
+export const FONT = "'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif";
 
 /** A self-contained SVG of the pattern with legend, row numbers and direction arrows. */
 export function patternToSvg(grid: Grid, opts: { title: string; author?: string; cell?: number; mirrored?: boolean }) {
@@ -93,9 +89,22 @@ export function patternToSvg(grid: Grid, opts: { title: string; author?: string;
   return { svg: parts.join(""), width: totalW, height: totalH };
 }
 
+export function fileSlug(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bracelet";
+}
+
+export function esc(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
 export async function downloadPatternPng(grid: Grid, title: string, author?: string, opts: { mirrored?: boolean } = {}) {
   const mirrored = !!opts.mirrored;
   const { svg, width, height } = patternToSvg(mirrored ? mirrorGrid(grid) : grid, { title, author, mirrored });
+  await downloadSvgAsPng(svg, width, height, `${fileSlug(title)}${mirrored ? "-mirrored" : ""}.png`);
+}
+
+/** Render an SVG string to a PNG (2× for crisp printing) and download it. */
+export async function downloadSvgAsPng(svg: string, width: number, height: number, filename: string) {
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const img = new Image();
@@ -116,8 +125,7 @@ export async function downloadPatternPng(grid: Grid, title: string, author?: str
     if (!blob) throw new Error("Couldn't create the PNG.");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bracelet";
-    a.download = `${slug}${mirrored ? "-mirrored" : ""}.png`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();

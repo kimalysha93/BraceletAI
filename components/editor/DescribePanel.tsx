@@ -16,19 +16,32 @@ const EXAMPLES = [
 
 const LOADING_LINES = ["Picking your colours…", "Reading your idea…", "Knotting it together…"];
 
-export default function DescribePanel({
+type Props<R> = {
+  onRecipe: (recipe: R) => void;
+  autoFocus?: boolean;
+  /** Where to send the description, plus a matching in-browser parser for when there's no server. */
+  endpoint?: string;
+  parse?: (text: string) => R;
+  examples?: string[];
+  placeholder?: string;
+  subtitle?: string;
+};
+
+export default function DescribePanel<R = Recipe>({
   onRecipe,
   autoFocus,
-}: {
-  onRecipe: (recipe: Recipe) => void;
-  autoFocus?: boolean;
-}) {
+  endpoint = "/api/generate",
+  parse = parseDescription as unknown as (text: string) => R,
+  examples = EXAMPLES,
+  placeholder = "e.g. a mint and white bracelet that says MIA with flowers on the ends",
+  subtitle = "Colours, a word or name, and any little pictures.",
+}: Props<R>) {
   const status = useAiStatus();
   const ready = aiIsReady(status);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [line, setLine] = useState(0);
-  const [result, setResult] = useState<GenerateResponse | null>(null);
+  const [result, setResult] = useState<GenerateResponse<R> | null>(null);
   const [showRecipe, setShowRecipe] = useState(false);
   const [warming, setWarming] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -48,19 +61,19 @@ export default function DescribePanel({
     if (!text || loading) return;
     setLoading(true);
     setLine(0);
-    let data: GenerateResponse;
+    let data: GenerateResponse<R>;
     const started = performance.now();
     try {
-      const res = await fetch("/api/generate", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: text, retry }),
       });
       if (!res.ok) throw new Error("bad response");
-      data = (await res.json()) as GenerateResponse;
+      data = (await res.json()) as GenerateResponse<R>;
     } catch {
       // No server at all (e.g. a static demo): parse in the browser.
-      const recipe = parseDescription(text);
+      const recipe = parse(text);
       data = { recipe, raw: recipe, mode: "offline", ms: Math.round(performance.now() - started), reason: "No server connection" };
     }
     setResult(data);
@@ -82,7 +95,7 @@ export default function DescribePanel({
         </span>
         <div>
           <h3 className="section-title leading-tight">Describe your bracelet</h3>
-          <p className="text-xs text-muted">Colours, a word or name, and any little pictures.</p>
+          <p className="text-xs text-muted">{subtitle}</p>
         </div>
       </div>
 
@@ -105,7 +118,7 @@ export default function DescribePanel({
           }}
           rows={3}
           maxLength={300}
-          placeholder="e.g. a mint and white bracelet that says MIA with flowers on the ends"
+          placeholder={placeholder}
           className="input resize-none text-[15px] leading-snug"
         />
         <button type="submit" className="btn-primary w-full py-2.5 text-[15px]" disabled={!prompt.trim() || loading}>
@@ -129,7 +142,7 @@ export default function DescribePanel({
       {!result && (
         <div className="space-y-1.5">
           <p className="label">Try one of these</p>
-          {EXAMPLES.map((ex) => (
+          {examples.map((ex) => (
             <button
               key={ex}
               onClick={() => setPrompt(ex)}
