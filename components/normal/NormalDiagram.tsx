@@ -122,7 +122,12 @@ function NormalDiagram({ pattern, sim, cell, mirrorLine, onKnotDown, onKnotEnter
         <circle key={`end-${s}`} cx={L.x(s)} cy={TOP + L.height + 16} r={Math.min(7, cell * 0.35)} fill={getThread(id).hex} stroke={id === pattern.strings[s] ? "rgba(59,47,58,.25)" : "#E2463F"} strokeWidth={id === pattern.strings[s] ? 1 : 2} pointerEvents="none" />
       ))}
       <text x={LEFT + L.width / 2} y={TOP + L.height + 38} textAnchor="middle" fontSize={11} fontWeight={700} fill={sim.repeats ? "#3FAF6A" : "#C93D7A"}>
-        {sim.repeats ? "✓ Strings end in their starting colours, so this repeats" : "Strings end in a different order, so the next repeat changes"}
+        <title>
+          {sim.repeats
+            ? "The strings end in their starting colours, so you can knot this again and again."
+            : "The strings end in a different order, so the next repeat will look different."}
+        </title>
+        {sim.repeats ? "✓ Repeats cleanly" : "Next repeat changes"}
       </text>
     </svg>
   );

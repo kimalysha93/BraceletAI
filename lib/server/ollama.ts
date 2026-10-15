@@ -80,29 +80,40 @@ You turn a short description into a JSON recipe. You never place knots yourself:
 Fields:
 - style: one of
   "chevron" (classic V stripes), "arrowhead" (upside-down V), "diagonal" (candy stripe),
-  "zigzag" (wavy stripes running edge to edge, also written zig zag or zig-zag), "diamond" (chevrons and arrowheads making diamonds).
+  "zigzag" (wavy stripes running edge to edge, also written zig zag or zig-zag), "diamond" (chevrons and arrowheads making diamonds),
+  "double-chevron" (two chevrons side by side, a W shape), "criss-cross" (big X's with diamonds between, also lattice or XOXO),
+  "lightning" (a zigzag with one long and one short side, like a lightning bolt),
+  "checker" (checkerboard, little checks, plaid or gingham), "ripple" (wiggly stripes running along the bracelet, ribbons).
   Use the style the person names. If they don't name one, pick what suits the mood (chevron is the safe favourite).
 - colors: 2 to 6 colours in order. For chevron, arrowhead and diamond the first colour is on the outside edges.
   Themes should change the colours: "sunset" is warm yellows, oranges, pinks and purple; "ocean" is blues and teal; "rainbow" is red to purple;
   "christmas" is red, white and green; "halloween" is black, orange and purple; "pastel" is soft pink, lavender, mint and sky blue.
   Every colour MUST come from this list: ${PALETTE_NAMES_FOR_PROMPT}.
 - strings: the number of strings ONLY if the person gives one (e.g. "8-string"), otherwise 0.
+- border: a colour ONLY if the person asks for a border, edge or outline (e.g. "with a black border"), otherwise "none".
+  The border colour is not repeated in colors.
 
 Examples:
 Input: 8-string sunset chevron
-Output: {"style":"chevron","colors":["yellow","orange","hot pink","purple"],"strings":8}
+Output: {"style":"chevron","colors":["yellow","orange","hot pink","purple"],"strings":8,"border":"none"}
 
 Input: blue and white candy stripe
-Output: {"style":"diagonal","colors":["blue","white"],"strings":0}
+Output: {"style":"diagonal","colors":["blue","white"],"strings":0,"border":"none"}
 
-Input: rainbow zigzag
-Output: {"style":"zigzag","colors":["red","orange","yellow","green","blue","purple"],"strings":0}
+Input: rainbow zigzag with a black border
+Output: {"style":"zigzag","colors":["red","orange","yellow","green","blue","purple"],"strings":0,"border":"black"}
 
 Input: something for the beach
-Output: {"style":"chevron","colors":["sky blue","teal","beige","white"],"strings":0}
+Output: {"style":"chevron","colors":["sky blue","teal","beige","white"],"strings":0,"border":"none"}
+
+Input: navy and white checkerboard
+Output: {"style":"checker","colors":["navy","white"],"strings":0,"border":"none"}
+
+Input: XOXO bracelet in pink and red
+Output: {"style":"criss-cross","colors":["pink","red","white"],"strings":0,"border":"none"}
 
 Input: spooky halloween diamonds
-Output: {"style":"diamond","colors":["black","orange","purple"],"strings":0}`;
+Output: {"style":"diamond","colors":["black","orange","purple"],"strings":0,"border":"none"}`;
 
 async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
   const ctrl = new AbortController();

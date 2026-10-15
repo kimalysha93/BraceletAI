@@ -6,6 +6,7 @@ import { MAX_COLORS } from "@/lib/constants";
 import { downloadNormalPng } from "@/lib/exportNormalPng";
 import {
   buildStyle,
+  FLIP_KNOT,
   isNormalPattern,
   KNOT_INFO,
   KNOTS,
@@ -46,7 +47,6 @@ type Draft = { title: string; pattern: NormalPattern };
 const DRAFT_KEY = "abb:normal-draft";
 const ZOOMS = [12, 14, 16, 18, 20, 23, 26, 30, 34];
 const DEFAULT_COLORS = ["hot-pink", "pink", "lavender", "purple"];
-const FLIP: Record<Knot, Knot> = { f: "b", b: "f", fb: "bf", bf: "fb" };
 
 const TABS: { id: Tab; label: string; icon: typeof Sparkles }[] = [
   { id: "describe", label: "Describe", icon: Sparkles },
@@ -54,7 +54,13 @@ const TABS: { id: Tab; label: string; icon: typeof Sparkles }[] = [
   { id: "strings", label: "Strings", icon: Ruler },
 ];
 
-const EXAMPLES = ["8-string sunset chevron", "navy and white candy stripe", "rainbow zigzag", "spooky halloween diamonds"];
+const EXAMPLES = [
+  "8-string sunset chevron",
+  "rainbow zigzag with a black border",
+  "navy and white checkerboard",
+  "XOXO criss-cross in pink and red",
+  "yellow and black lightning bolt",
+];
 
 function readDraft(): Draft | null {
   const d = loadLocal<Draft | null>(DRAFT_KEY, null);
@@ -134,7 +140,7 @@ export default function NormalEditor() {
     const k = t === "cycle" ? nextKnot(p.knots[r][i]) : t;
     let next = setKnot(p, r, i, k);
     const m = mirrorOn ? mirrorOf(r, i) : null;
-    if (m) next = setKnot(next, m[0], m[1], FLIP[k]);
+    if (m) next = setKnot(next, m[0], m[1], FLIP_KNOT[k]);
     return next;
   };
 
@@ -431,11 +437,11 @@ export default function NormalEditor() {
                 parse={parseNormalDescription}
                 examples={EXAMPLES}
                 placeholder="e.g. a 10-string ocean chevron"
-                subtitle="A style (chevron, candy stripe, zigzag…), colours or a theme."
+                subtitle="A style (chevron, zigzag, checkerboard, criss-cross…), colours, a theme or a border."
               />
             </div>
             <div className={tab === "classics" ? "" : "hidden"}>
-              <ClassicsPanel colors={used} strings={n} onPick={pickClassic} />
+              <ClassicsPanel colors={used} strings={n} borderColor={color} onPick={pickClassic} />
             </div>
             <div className={tab === "strings" ? "" : "hidden"}>
               <NormalStringPanel pattern={pattern} />
