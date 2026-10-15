@@ -4,7 +4,7 @@ Design friendship bracelet patterns without the guesswork. Describe a bracelet i
 
 This is a demo prototype for a class pitch. No accounts, payments or paid APIs.
 
-## Try the live prototype in GitHub Pages
+## Try the demo prototype in GitHub Pages
 [INSERT LINK WHEN LIVE]
 
 ## Run it locally
