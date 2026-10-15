@@ -42,17 +42,6 @@ The AI never draws knots. It turns your words into a small JSON **recipe** (text
 
 If the AI is off, takes longer than 10 seconds, or returns junk, the keyword parser (`lib/fallbackParser.ts`) builds the recipe instead, so the demo never fails.
 
-## Demo Walkthrough
-
-1. Open **Create**, type: `a teal and white bracelet that says HELLO with stars on the ends`, press **Make my pattern**.
-2. Click **Show AI recipe** to show the structured JSON.
-3. In **Swap a colour** (left side), swap teal → purple. The cut list updates instantly.
-4. Pick a colour and draw with the pencil to show manual editing.
-5. **Publish** to the library, then open **Library**, pick a pattern, and **Remix** it.
-6. Backup: if the AI is slow, offline mode still produces a pattern.
-
-Tip: the editor autosaves a draft in your browser. Use **Library → New pattern** (or `/create?new=1`) for a blank start.
-
 ## Features
 
 **Two kinds of bracelet.** Switch between them with the **Alpha | Traditional** toggle at the top of the editor.
