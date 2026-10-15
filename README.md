@@ -1,10 +1,13 @@
 # AI Bracelet Builder
 
-Design alpha friendship bracelet patterns without the guesswork. Describe a bracelet in plain words (or draw it like pixel art), get a knottable pattern, and see exactly how much string to cut.
+Design friendship bracelet patterns without the guesswork. Describe a bracelet in plain words (or draw it like pixel art), get a knottable pattern, and see exactly how much string to cut.
 
 This is a demo prototype for a class pitch. No accounts, payments or paid APIs.
 
-## Run it
+## Try the live prototype in GitHub Pages
+[INSERT LINK WHEN LIVE]
+
+## Run it locally
 
 ```bash
 npm install
@@ -35,7 +38,7 @@ The AI never draws knots. It turns your words into a small JSON **recipe** (text
 
 If the AI is off, takes longer than 10 seconds, or returns junk, the keyword parser (`lib/fallbackParser.ts`) builds the recipe instead, so the demo never fails.
 
-## Demo script
+## Demo Walkthrough
 
 1. Open **Create**, type: `a teal and white bracelet that says HELLO with stars on the ends`, press **Make my pattern**.
 2. Click **Show AI recipe** to show the structured JSON.
@@ -48,27 +51,40 @@ Tip: the editor autosaves a draft in your browser. Use **Library → New pattern
 
 ## Features
 
+**Two kinds of bracelet.** Switch between them with the **Alpha | Traditional** toggle at the top of the editor.
+
+**Alpha patterns** (pixel-style, one colour per knot)
 - Knot-style pattern view with row numbers, direction arrows, colour key, and a worn-bracelet preview
 - Editor: pencil, fill, eraser, colour picker, mirror, undo/redo, resize, swap colour, one-click background
-- 18 hand-drawn motifs (including Halloween and winter ones), themed backgrounds (rainbow, sunset, ocean…), a 5×7 pixel font for words, and photo-to-pattern (no AI: downscale and reduce colours)
-- String calculator with loop / braid / tape starts, cm or inches, a calibrate mode, and "ran short / too long" feedback (saved to `data/feedback.json`)
-- Pattern library with search, filters, remix credit and remix counts
-- PNG export and a print view
+- **Select tool:** drag a rectangle, then drag it to move it (the gap fills with the background colour) or hold Alt/Option to copy it
+- 119 hand-drawn motifs in six groups (cute, food, nature, animals, holidays, fun), themed backgrounds (rainbow, sunset, ocean…), a 5×7 pixel font for words, and photo-to-pattern (no AI: downscale and reduce colours)
+
+**Traditional patterns** (diagonal knots)
+- Knot diagram with lettered strings that cross at each knot, arrows for the four knot types (forward, backward, forward-backward, backward-forward) and a worn-bracelet preview
+- Click a knot to turn it, colour it, or set a knot type (drag to set several), with mirror mode for symmetric designs
+- A check that tells you whether the strings end in their starting order, so the pattern repeats cleanly
+- **10 classic styles** in one click: chevron, arrowhead, candy stripe, zigzag, diamonds, double chevron, criss-cross, lightning, checkerboard and ripple, each with an optional **border**
+- Every pattern is worked out by simulating the strings, so it can always actually be tied
+
+**Describe it**
+- Type an idea in plain words for either kind of bracelet ("8-string sunset chevron with a black border", "pink hearts with the name MIA")
+- The AI returns a small recipe and code builds the knots; **Show recipe** reveals it. Without the AI, a keyword helper does the same job
+
+**String lengths**
+- Cut list per colour (alpha) or per string (traditional), with loop / braid / tape starts, cm or inches, and a calibrate mode
+- "Ran short / too long" feedback, saved to `data/feedback.json` when running locally
+
+**Library**
+- 93 example patterns, including 12 traditional ones
+- Search, filters (type, width, length, colours), remix credit and remix counts; publish from either editor
+
+**Export**
+- PNG export of either kind of pattern, **as drawn or mirrored** (flipped left ↔ right), plus a print view
+
+**Live site**
+- A GitHub Pages version with a banner explaining that the AI and publishing are turned off there. Everything else works in the visitor's browser (see `docs/live-site.md`)
 
 String maths constants live in `lib/stringConfig.ts`. They're placeholders until calibrated against a real bracelet.
-
-## Data
-
-Published patterns are saved to `data/patterns.json`, which is created and filled with sample patterns on first run. It's gitignored, so delete it to reset the library.
-
-## Putting it online later
-
-The easiest host is [Vercel](https://vercel.com) (import the GitHub repo, no settings needed). On a hosted copy:
-
-- There's no Ollama, so the AI runs in offline mode (the keyword helper). Set `OLLAMA_HOST` if you ever point it at a reachable Ollama server.
-- The server can't write files, so published patterns and feedback are saved in each visitor's browser instead. Sample patterns always show.
-
-GitHub Pages alone won't work, because the app uses server API routes.
 
 ## Tech
 
