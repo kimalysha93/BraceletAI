@@ -5,7 +5,9 @@ Design friendship bracelet patterns without the guesswork. Describe a bracelet i
 This is a demo prototype for a class pitch. No accounts, payments or paid APIs.
 
 ## Try the demo prototype in GitHub Pages
-[INSERT LINK WHEN LIVE]
+https://kimalysha93.github.io/BraceletAI/
+
+Note: Publishing to a public library is disabled in the prototype. The Describe Pattern feature is also limited as the LLM is not integrated into GitHub pages. To use the local AI, download the repo and follow the instructions below to run the software locally.
 
 ## Run it locally
 
